@@ -1,0 +1,48 @@
+{
+    "name": "player",
+    "type": "player",
+    "stats": {
+        "normalSpeed": 5,
+        "maxSpeed": 8.5,
+        "maxHealth": 100,
+        "maxEnergy": 100,
+        "atkPerSec": 0.3,
+        "atkBaseDamage": 25
+    },
+    "collider":{
+        "size": {
+            "height": 0.6,
+            "width": 0.6
+        },
+        "offSets": {
+            "top": 0.4,
+            "left": 0.21
+        },
+        "angleSize": 0.2
+    },
+    "tilemap": {
+        "name":"tilemap",
+        "src":"sprites/characters.png",
+        "totalRow": 8,
+        "totalColumns": 12,
+        "rows": 4,
+        "columns": 3,
+        "rowStart": 0,
+        "colStart": 3,
+        "animation order": {
+            "0": "BOTTOM WALK",
+            "1": "LEFT WALK",
+            "2": "RIGHT WALK",
+            "3": "TOP WALK"
+        }  
+    },
+    "animation": {
+        "time": 0.17,
+        "normalSpeed": 0.17,
+        "maxSpeed": 0.1,
+        "default state": 1
+    },
+    "camera":{
+        "smoothOffset": 0.2
+    }
+}
