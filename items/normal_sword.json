@@ -1,14 +1,17 @@
 {
     "name": "normal_sword",
     "displayedName": "Sword",
-    "type": "sword",
+    "type": "weapon",
+    "weaponType": "sword",
     "tilemap": {
         "name":"tilemap",
         "src":"sprites/weapon.png",
         "totalColumns": 4,
         "totalRow": 6,
         "colStart": 2,
-        "rowStart": 0
+        "rowStart": 0,
+        "ratio": 2.25,
+        "scaling": 1.5
     },
     "stats": {
         "stackable": false,

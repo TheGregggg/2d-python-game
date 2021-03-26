@@ -162,17 +162,18 @@ class Entity(object):
         passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
     def drawHud(self, xPos, yPos, passThrough):
-        scale = passThrough['HudScale']
+        if passThrough['currentHUD'] == 'main':
+            scale = passThrough['HudScale']
 
-        xToDraw = (self.x - xPos)*self.param['newPixelScale']
-        yToDraw = (self.y - yPos)*self.param['newPixelScale']
+            xToDraw = (self.x - xPos)*self.param['newPixelScale']
+            yToDraw = (self.y - yPos)*self.param['newPixelScale']
 
-        value = ((self.stats["health"] * 100) / self.stats["maxHealth"]) / 100 if self.stats["health"] > 0 else 0
+            value = ((self.stats["health"] * 100) / self.stats["maxHealth"]) / 100 if self.stats["health"] > 0 else 0
 
-        if self.stats["health"] < self.stats["maxHealth"]:
-            rect = gFunction.createRectOutlined(value,xToDraw,yToDraw,100,20,6)
-            pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
-            pygame.draw.rect(passThrough['window'],(255,0,0),rect[1])
+            if self.stats["health"] < self.stats["maxHealth"]:
+                rect = gFunction.createRectOutlined(value,xToDraw,yToDraw,100,20,6)
+                pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+                pygame.draw.rect(passThrough['window'],(255,0,0),rect[1])
 
 class EntitiesManager(object):
     def __init__(self):
@@ -188,10 +189,10 @@ class EntitiesManager(object):
             if entity.x >= coords['xStart'] and entity.x <= coords['xEnd'] and entity.y >= coords['yStart'] and entity.y <= coords['yEnd']:
                 self.visibleEntities.append(entity)
 
-    def killEntity(self,name):
+    def killEntity(self,ent):
         for entity in self.entities:
-            if entity.name == name:
-                del self.entities[entity]
+            if entity == ent:
+                self.entities.remove(entity)
 
 class Engine(object):
     def __init__(self,param):
@@ -226,6 +227,8 @@ class Engine(object):
         self.savePath = param["saves"]
 
         self.entitiesManager = EntitiesManager()
+
+        self.currentHUD = 'main'
 
         #self.loadSaves()
         self.clock = pygame.time.Clock()
@@ -270,10 +273,10 @@ class Engine(object):
             yStart = math.floor(CameraPosY)
 
         xEnd = xStart + self.tilesOnX + 1
-        yEnd = yStart + self.tilesOnY + 1
+        yEnd = yStart + self.tilesOnY + 2
 
-        offx = round(CameraPosX - xStart,3)
-        offy = round(CameraPosY - yStart,3)
+        offx = round(CameraPosX - xStart,3) + 0.5
+        offy = round(CameraPosY - yStart,3) + 0.5
 
         dic = {
             "yStart":yStart,
@@ -313,6 +316,9 @@ class Engine(object):
 
     def applyPhysicalChanges(self,deltaTime):
         for entitie in self.entitiesManager.entities:
+            if entitie.data['type'] != 'player':
+                if entitie.stats['health'] <= 0:
+                    self.entitiesManager.killEntity(entitie)
             entitie.move(self.clock.get_time())
 
     def Draws(self):
@@ -334,4 +340,9 @@ class Engine(object):
     def DrawHUDs(self):
         coords = self.ScreenToWorldCoords
         for entitie in self.entitiesManager.entities:
-            entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{"window":self.window,"HudScale":self.param['HudScale']})
+            passThrough = {
+                "window":self.window,
+                "HudScale":self.param['HudScale'],
+                "currentHUD": self.currentHUD
+                }
+            entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)

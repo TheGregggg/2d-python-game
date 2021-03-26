@@ -18,3 +18,20 @@ def createRectOutlined(value ,xPos ,yPos , width, height, outlineSize):
 def createRectFromRight(screenWidth,right, top, width, height):
     rect = Rect(screenWidth - width - right, top, width, height)
     return rect
+
+def createRectWithRoundCorner(left, top, width, height,radius):
+    width = int(width)
+    height = int(height)
+
+    rects = [
+        [(left+radius, top),(width-radius*2, height)],
+        [(left, top+radius),(width, height-radius*2)]
+    ]
+    circles = [
+        (left+radius, top+radius),
+        (left+width-radius, top+radius),
+        (left+radius, top+height-radius),
+        (left+width-radius, top+height-radius)
+    ]
+
+    return (rects,circles)

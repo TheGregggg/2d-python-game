@@ -20,6 +20,7 @@ actions = {
     "left":   pygame.K_LEFT,
     "sprint": pygame.K_LSHIFT,
     "attack": pygame.K_SPACE,
+    "inventory": pygame.K_i
 }
 
 class Item():
@@ -49,34 +50,71 @@ class Item():
         location = (self.tilemapSettings['start'][0], self.tilemapSettings['start'][1])
         self.sprite = self.tilemap.subsurface(pygame.Rect(location, self.tilemapSettings['size']))
 
+    def drawSprite(self,scale,coords,passThrough):
+        tilemap = self.data['tilemap']
+        itemScale = (int(coords['width']*scale*tilemap['scaling']/tilemap['ratio']),int(coords['height']*scale*tilemap['scaling']))
+        sprite = pygame.transform.scale(self.sprite.convert_alpha(),itemScale)
+        sprite = pygame.transform.rotate(sprite,-45)
+
+        passThrough['window'].blit(sprite, (coords['left']-(6*scale) , coords['top']-(17.5*scale)))
+
 class Inventory():
     def __init__(self):
-        self.slots = [[None,None,None],[None,None,None],[None,None,None]]
+        self.slots = [[None,None,None,None],[None,None,None,None]]
         self.hands = None
+        self.isOpen = False
     
     def drawHud(self,passThrough):
         scale = passThrough['HudScale']
-
         width, height = passThrough['window'].get_size()
-
         coords = {
             'right': 8,
             'top': 8,
             'height': 50,
-            'width': 50
+            'width': 50,
+            'inventory-margin': 10
         }
+        coords['left'] = width - coords['width']*scale - coords['right']*scale
+        coords['top'] *= scale
+        transparency = 150
+        radius = 10
 
-        s = pygame.Surface((coords['width']*scale,coords['height']*scale))  
-        s.set_alpha(128)                
-        s.fill((0,0,0))           
-        passThrough['window'].blit(s, (width - coords['width']*scale - coords['right']*scale, coords['top']*scale))
+        rects, circles = gFunction.createRectWithRoundCorner(0,0,coords['width']*scale,coords['height']*scale,radius)
+        s = pygame.Surface((coords['width']*scale,coords['height']*scale), pygame.SRCALPHA)
+        for rect in rects:
+            pygame.draw.rect(s,(0,0,0,transparency),Rect(rect))
+        for circle in circles:
+            pygame.draw.circle(s,(0,0,0,transparency),circle,radius)
 
-        if self.hands is not None:
-            if self.hands.data['type'] == 'sword':
-                itemScale = (int(coords['width']*scale/1.5),int(coords['height']*scale*1.5))
+        if passThrough['currentHUD'] == 'main':
+            passThrough['window'].blit(s, (coords['left'], coords['top']))
 
-            sprite = pygame.transform.scale(self.hands.sprite.convert_alpha(),itemScale)
-            passThrough['window'].blit(sprite, (width - coords['width']*scale - coords['right']*scale, coords['top']*scale))
+            if self.hands is not None:
+                self.hands.drawSprite(scale,coords, passThrough)
+                #passThrough['window'].blit(sprite, (width - coords['width']*scale - coords['right']*scale -8, -26+coords['top']*scale))
+        
+
+        if passThrough['currentHUD'] == 'inventory':
+            inventory = pygame.Surface((
+                len(self.slots[0]) * (coords['width']  + coords['inventory-margin'])*scale,
+                len(self.slots)    * (coords['height'] + coords['inventory-margin'])*scale), pygame.SRCALPHA)
+            for y,y_value in enumerate(self.slots):
+                for x,x_value in enumerate(y_value):
+                    place = (coords['inventory-margin']*scale+(x*scale*coords['width']+x*scale*coords['inventory-margin']),coords['inventory-margin']*scale+(y*coords['height']*scale+y*scale*coords['inventory-margin']))
+                    coords['left'],coords['right'] = place
+
+                    inventory.blit(s,place)
+                    if x_value is not None:
+                        x_value.drawSprite(scale,coords,passThrough)
+            
+            invWidth, invHeight = inventory.get_size()
+
+            passThrough['window'].blit(inventory, (width/2 - invWidth/2, height/2 - invHeight/2))
+
+            coords['left'],coords['top'] = (width/2 - coords['width']/2*scale + coords['inventory-margin']*scale/2, height/2 - coords['height']*scale*2 - coords['inventory-margin']*scale)
+            passThrough['window'].blit(s, (coords['left'],coords['top']))
+            if self.hands is not None:
+                self.hands.drawSprite(scale,coords,passThrough)
 
 class Player(gregngine.Entity):
     def __init__(self, param):
@@ -99,17 +137,18 @@ class Player(gregngine.Entity):
         self.animator.setFrame()
 
     def drawHud(self, xPos, yPos, passThrough):
-        scale = passThrough['HudScale']
-
-        x = ((self.energy * 100) / self.stats["maxEnergy"]) /100 if self.energy > 0 else 0
-
-        rect = gFunction.createRectOutlined(x, 8*scale, 8*scale, 100*scale, 20*scale, 4*scale)
-        pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
-
-        if x > 0:
-            pygame.draw.rect(passThrough['window'],(0,80,255),rect[1])
-        
         self.inventory.drawHud(passThrough)
+
+        if passThrough['currentHUD'] == 'main':
+            scale = passThrough['HudScale']
+
+            x = ((self.energy * 100) / self.stats["maxEnergy"]) /100 if self.energy > 0 else 0
+
+            rect = gFunction.createRectOutlined(x, 8*scale, 8*scale, 100*scale, 20*scale, 4*scale)
+            pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+
+            if x > 0:
+                pygame.draw.rect(passThrough['window'],(0,80,255),rect[1])
 
     def move(self,dTime):
         x,y = self.velocity['x'],self.velocity['y']
@@ -151,6 +190,9 @@ class Player(gregngine.Entity):
         self.camera.yOffset = -(y/2) + self.param['y']
 
     def attack(self):
+        if self.inventory.hands.data['type'] != 'weapon':
+            return None
+
         currentTime = time.time()   
         if currentTime-self.lastAttackTime >= self.stats['atkPerSec']:
             self.lastAttackTime = currentTime 
@@ -181,6 +223,9 @@ class Player(gregngine.Entity):
         else:
             return None
 
+    def inventory(self):
+        pass
+
 class Engine(gregngine.Engine):
     def __init__(self, param):
         super().__init__(param)
@@ -204,7 +249,7 @@ class Engine(gregngine.Engine):
         self.player = Player(playerParam)
         self.player.camera = self.mainCamera
         self.mainCamera.setPos(0,0)
-        self.player.setCameraOffset
+        self.loadSaves()
 
         self.entitiesManager.addEntity(self.player)
         self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
@@ -215,9 +260,9 @@ class Engine(gregngine.Engine):
             self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
 
     def main(self,inputEvent,inputPressed):
-        self.playerInput(inputPressed)
+        self.playerInput(inputEvent,inputPressed)
         
-    def playerInput(self,inputPressed):
+    def playerInput(self,inputEvent,inputPressed):
         playerSpeedY,playerSpeedX = 0, 0
 
         walls = self.checkWorld()
@@ -265,7 +310,6 @@ class Engine(gregngine.Engine):
             self.player.setVelocity(playerSpeedX, playerSpeedY)
         
         # attack code
-
         if inputPressed[actions["attack"]]:
             attackinfo = self.player.attack()
 
@@ -274,6 +318,21 @@ class Engine(gregngine.Engine):
                     if attackinfo['attackRect'].colliderect(entity.rect) and entity.data['type'] == 'monster':
                         print("Hit " + entity.name)
                         entity.stats['health'] -= attackinfo['damage']
+
+        # inventory code
+        inventoryPressed = False
+        for event in inputEvent:
+            if event.type == pygame.KEYDOWN:
+                if event.key==actions["inventory"]:
+                    inventoryPressed = True
+        if inventoryPressed:
+            #self.player.inventory()
+            if not self.player.inventory.isOpen:
+                self.player.inventory.isOpen = True
+                self.currentHUD = 'inventory'
+            else:
+                self.player.inventory.isOpen = False
+                self.currentHUD = 'main'
 
     def DrawWorld(self):
         super().DrawWorld()
@@ -284,6 +343,7 @@ class Engine(gregngine.Engine):
         self.collisions = {}
 
         coords = self.ScreenToWorldCoords
+
 
         for y_index,y in enumerate(self.world.world[coords['yStart']:coords['yEnd']]):
             for x_index,x in enumerate(y[coords['xStart']:coords['xEnd']]):
@@ -392,7 +452,7 @@ engineParameters = {
     "saves": "saves/saves",
     "pixelSize": 16,
     "scaleMultiplier": 6,
-    "HudScale": 1.5,
+    "HudScale": 2,
     "debug": False
 }
 engine = Engine(engineParameters)
