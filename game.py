@@ -6,7 +6,6 @@ import world
 import math
 import time
 
-import pickle
 import shelve
 import json
 
@@ -125,31 +124,41 @@ class Inventory():
             if passThrough['mousePos'] is not None and Rect( (coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePos']):
                     self.isOpen = True
         
-
         if passThrough['currentHUD'] == 'inventory':
             stepHeight = coords['height'] + coords['inventory-margin']*2
             stepWidth  = coords['width']  + coords['inventory-margin']*2
 
             invWidth  = len(self.slots[0]) * stepWidth *scale
             invHeight = len(self.slots)    * stepHeight *scale
-            startLeft = width/2  - invWidth/2
-            startTop  = height/2 - invHeight/2
+            startLeft = width/2  - invWidth/2  
+            startTop  = height/2 - invHeight/2 
 
             cases = []
 
             for y,y_value in enumerate(self.slots):
                 for x,x_value in enumerate(y_value):
-                    placeLeft = startLeft + x*(stepWidth + coords['inventory-margin'])*scale
-                    placeTop  = startTop  + y*(stepHeight + coords['inventory-margin'])*scale
-                    cases.append({'place':(placeLeft,placeTop),'x_value':x_value,'x':x,'y':y})
+                    placeLeft = startLeft + x*(stepWidth  + coords['inventory-margin']/2)*scale + coords['inventory-margin']*scale
+                    placeTop  = startTop  + y*(stepHeight + coords['inventory-margin']/2)*scale + coords['inventory-margin']*scale
+                    cases.append({'place':(int(placeLeft),int(placeTop)),'x_value':x_value,'x':x,'y':y,'ground':False})
 
             cases.append({
-                'place':(int(width/2 - coords['width']/2*scale + coords['inventory-margin']*scale/2),int(height/2 - coords['height']*2*scale - coords['inventory-margin']*4*scale)),
-                'x_value':self.hands})
+                'place':(int(width/2  - stepWidth*scale/2 + coords['inventory-margin']*1.68*scale),int(height/2  - stepHeight*scale*2 + coords['inventory-margin']*scale)),
+                'x_value':self.hands,
+                'ground':False})
             
-            for entity in passThrough['visibleEntities']:
-                if entity.x == round(self.player.x) and entity.y == round(self.player.y):
-                    print(entity)
+            ents = [ent for ent in passThrough['visibleEntities'] if ent.data['type'] != 'player' and ent.x == round(self.player.x) and ent.y == round(self.player.y)]
+
+            if len(ents) > 0:
+                groundItemWidth  = len(ents) * stepWidth * scale
+                startLeft = width/2  - groundItemWidth/2
+                startTop  = height/2 + invHeight/2 
+
+                isSolo = 1 if len(ents) == 1 else 0
+
+                for x,entity in enumerate(ents):
+                    placeLeft = startLeft + x*(stepWidth  + coords['inventory-margin']/2)*scale + coords['inventory-margin']*1.5*scale + coords['inventory-margin']/2*scale*isSolo
+                    placeTop  = startTop  + coords['inventory-margin']*2*scale 
+                    cases.append({'place':(int(placeLeft),int(placeTop)),'x_value':entity,'ground':True})
 
             for caseInfo in cases:
                 passThrough['window'].blit(case,caseInfo['place'])
@@ -164,6 +173,23 @@ class Inventory():
                             temp = self.hands
                             self.hands = self.slots[caseInfo['y']][caseInfo['x']]
                             self.slots[caseInfo['y']][caseInfo['x']] = temp
+                        elif caseInfo['ground']:
+                            freeCases = []
+                            if self.hands is None:
+                                freeCases.append('hands')
+                            for y,y_value in enumerate(self.slots):
+                                for x,x_value in enumerate(y_value):
+                                    if x_value is None:
+                                        freeCases.append((y,x))
+                            
+                            if len(freeCases) > 0:
+                                if freeCases[0] == 'hands':
+                                    self.hands = caseInfo['x_value']
+                                else:
+                                    y,x = freeCases[0]
+                                    self.slots[y][x] = caseInfo['x_value']
+                                self.player.parent.entitiesManager.killEntity(caseInfo['x_value'])
+    
                         else:
                             self.isOpen = False
 
@@ -171,13 +197,14 @@ class Player(gregngine.Entity):
     def __init__(self, param):
         super().__init__(param)
 
+        self.parent = None
+
         self.speed = self.stats["normalSpeed"]
         self.running = False
 
         self.camera = None
         self.inventory = Inventory()
         self.inventory.player = self
-        self.inventory.hands = Item({"itemRepr":'normal_sword',"pixelSize": 16,"scaleMultiplier": 6,})
 
         self.velocity = {"x": 0, "y": 0}
 
@@ -365,6 +392,7 @@ class Engine(gregngine.Engine):
             'x':6,
             'y':6}
         self.player = Player(playerParam)
+        self.player.parent = self
         self.player.camera = self.mainCamera
         self.mainCamera.setPos(0,0)
         self.loadSaves()
@@ -377,6 +405,7 @@ class Engine(gregngine.Engine):
 
         self.entitiesManager.addEntity(self.player)
         self.entitiesManager.addEntity(sword)
+
         self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 
     def rezizeSprites(self):

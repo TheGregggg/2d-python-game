@@ -272,11 +272,14 @@ class Engine(object):
         else:
             yStart = math.floor(CameraPosY)
 
-        xEnd = xStart + self.tilesOnX + 1
+        xEnd = xStart + self.tilesOnX + 2
         yEnd = yStart + self.tilesOnY + 2
 
-        offx = round(CameraPosX - xStart,3) + 0.25
-        offy = round(CameraPosY - yStart,3) + 0.25
+        widthOffset = round(self.tilesOnX*self.param['newPixelScale'] - self.window.get_width(),2)/self.param['newPixelScale']/2
+        heightOffset = round(self.tilesOnY*self.param['newPixelScale'] - self.window.get_height(),2)/self.param['newPixelScale']/2
+
+        offx = round(CameraPosX - xStart,3) + widthOffset
+        offy = round(CameraPosY - yStart,3) + heightOffset
 
         dic = {
             "yStart":yStart,
@@ -286,6 +289,7 @@ class Engine(object):
             "offx":offx,
             "offy":offy,
         }
+        #print(dic)
 
         self.ScreenToWorldCoords = dic
 
