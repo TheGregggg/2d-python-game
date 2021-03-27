@@ -156,6 +156,8 @@ class Player(gregngine.Entity):
         self.energy = self.stats["maxEnergy"]
 
         self.lastAttackTime = time.time()
+        self.isAttacking = False
+        self.atkAnim = {'lastStep':-1,'lastTime':0}
 
         self.animator.setFrame()
 
@@ -186,6 +188,7 @@ class Player(gregngine.Entity):
             x,y = x*self.stats["normalSpeed"],y*self.stats["normalSpeed"]
 
         x,y = gFunction.normalize(x * dTime * 0.001,y * dTime * 0.001)
+
         self.x += x
         self.y += y
 
@@ -200,6 +203,18 @@ class Player(gregngine.Entity):
 
     def setVelocity(self,x,y):
         self.velocity = {"x": x, "y": y}
+
+    def setOrientation(self,x,y):
+        if x == 0 and y < 0:
+            self.animator.setAnimation('TOP WALK')
+        elif x == 0 and y > 0:
+            self.animator.setAnimation('BOTTOM WALK')
+        elif x < 0:
+            self.animator.setAnimation('LEFT WALK')
+        elif x > 0:
+            self.animator.setAnimation('RIGHT WALK')
+        else:
+            self.animator.setAnimation('IDLE')
 
     def increaseEnergy(self,dtime):
     
@@ -222,11 +237,8 @@ class Player(gregngine.Entity):
             atkPerSec = self.stats['atkPerSec']*weaponTypeAPSMultiplier.get(self.inventory.hands.data['weaponType'])
             damage = self.stats['atkBaseDamage'] + self.inventory.hands.data['stats']['damage']
 
-
-        
-
         currentTime = time.time()   
-        if currentTime-self.lastAttackTime >= atkPerSec:
+        if currentTime-self.lastAttackTime >= atkPerSec and not self.isAttacking:
             self.lastAttackTime = currentTime 
 
             dico = {
@@ -238,6 +250,7 @@ class Player(gregngine.Entity):
 
             anim = self.animator.animation if self.animator.animation != 'IDLE' else self.animator.lastAnimation
             lookingTo = dico.get(anim)
+            self.atkLookingTo = lookingTo
 
             attackRect = self.rect
 
@@ -250,13 +263,57 @@ class Player(gregngine.Entity):
             elif lookingTo == 'bottom':
                 attackRect.top += self.param['newPixelScale']
 
+            self.isAttacking = True
+
             return {'attackRect':attackRect,'damage':damage}
 
         else:
             return None
 
-    def inventory(self):
-        pass
+    def attackAnimation(self):
+        if self.isAttacking:
+            t = self.atkAnim['lastTime'] + self.data['animation']['attack']['stepTime']
+            if t < time.time():
+                self.atkAnim['lastTime'] = time.time()
+                self.atkAnim['lastStep'] += 1
+
+            if self.atkAnim['lastStep'] == len(self.data['animation']['attack']['steps']):
+                self.isAttacking = False
+                self.atkAnim['lastStep'] = -1
+                self.atkAnim['lastTime'] = 0
+
+            elif self.inventory.hands is not None:
+                currentStep = self.data['animation']['attack']['steps'][self.atkAnim['lastStep']]
+                animationSurface = pygame.Surface((int(3*self.param['newPixelScale']),int(3*self.param['newPixelScale'])), pygame.SRCALPHA)
+
+                sprite = self.inventory.hands.sprite
+                tilemap = self.inventory.hands.data['tilemap']
+
+                itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
+                sprite = pygame.transform.scale(sprite.convert_alpha(),(itemScale))
+                sprite = pygame.transform.rotate(sprite,currentStep['rotation'])
+
+                animationSurface.blit(sprite,(currentStep['y'],currentStep['x']))
+                if self.atkLookingTo == 'top':
+                    animationSurface = pygame.transform.rotate(animationSurface,90)
+                elif self.atkLookingTo == 'bottom':
+                    animationSurface = pygame.transform.rotate(animationSurface,-90)
+                elif self.atkLookingTo == 'left':
+                    animationSurface = pygame.transform.flip(animationSurface,True,False)
+
+                return animationSurface
+
+        return None
+
+    def draw(self, xStart, yStart, passThrough):
+        super().draw(xStart, yStart, passThrough)
+
+        xToDraw = self.x - xStart -1
+        yToDraw = self.y - yStart -1
+
+        animationSurface = self.attackAnimation()
+        if animationSurface is not None:
+            passThrough['window'].blit(animationSurface,(xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
 class Engine(gregngine.Engine):
     def __init__(self, param):
@@ -296,6 +353,7 @@ class Engine(gregngine.Engine):
         
     def playerInput(self,inputEvent,inputPressed):
         playerSpeedY,playerSpeedX = 0, 0
+        playerMouvY,playerMouvX = 0, 0
 
         walls = self.checkWorld()
 
@@ -312,34 +370,29 @@ class Engine(gregngine.Engine):
         self.player.increaseEnergy(self.clock.get_time())
 
         if inputPressed[actions["up"]]:
-            if (inputPressed[actions["left"]] and inputPressed[actions["right"]]) or (not inputPressed[actions["left"]] and not inputPressed[actions["right"]]):
-                self.player.animator.setAnimation('TOP WALK')
             if "Top" not in walls:
                 playerSpeedY -= 1
+            playerMouvY -= 1
 
         if inputPressed[actions["down"]]:
-            if (inputPressed[actions["left"]] and inputPressed[actions["right"]]) or (not inputPressed[actions["left"]] and not inputPressed[actions["right"]]):
-                self.player.animator.setAnimation('BOTTOM WALK')
             if "Bottom" not in walls:
                 playerSpeedY += 1
+            playerMouvY += 1
 
         if inputPressed[actions["left"]]:
-            if not (inputPressed[actions["left"]] and inputPressed[actions["right"]]):
-                self.player.animator.setAnimation('LEFT WALK')
             if "Left" not in walls:
                 playerSpeedX -= 1
+            playerMouvX -= 1
 
         if inputPressed[actions["right"]]:
-            if (not inputPressed[actions["left"]] and inputPressed[actions["right"]]):
-                self.player.animator.setAnimation('RIGHT WALK')
             if "Right" not in walls:
                 playerSpeedX += 1
-
-        if playerSpeedX == 0 and playerSpeedY == 0:
-            self.player.animator.setAnimation('IDLE') 
+            playerMouvX += 1
         
         if playerSpeedX != 0 or playerSpeedY != 0:
             self.player.setVelocity(playerSpeedX, playerSpeedY)
+        
+        self.player.setOrientation(playerMouvX, playerMouvY)
         
         # attack code
         if inputPressed[actions["attack"]]:
