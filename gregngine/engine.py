@@ -341,8 +341,9 @@ class Engine(object):
         coords = self.ScreenToWorldCoords
         for entitie in self.entitiesManager.entities:
             passThrough = {
-                "window":self.window,
-                "HudScale":self.param['HudScale'],
-                "currentHUD": self.currentHUD
+                "window": self.window,
+                "HudScale": self.param['HudScale'],
+                "currentHUD": self.currentHUD,
+                "mousePos": self.mousePos
                 }
             entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)

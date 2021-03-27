@@ -1,23 +1,23 @@
 {
-    "name": "normal_sword",
-    "displayedName": "Sword",
+    "name": "normal_mace",
+    "displayedName": "Mace",
     "type": "weapon",
-    "weaponType": "sword",
+    "weaponType": "mace",
     "tilemap": {
         "name":"tilemap",
         "src":"sprites/weapon.png",
         "totalColumns": 4,
         "totalRow": 6,
         "colStart": 2,
-        "rowStart": 0,
+        "rowStart": 1,
         "ratio": 2.25,
         "scaling": 1.5,
-        "leftOffset": -6,
-        "topOffset": -17.5
+        "leftOffset": -6.5,
+        "topOffset": -16
     },
     "stats": {
         "stackable": false,
         "cost": 200,
-        "damage": 25
+        "damage": 50
     }
 }

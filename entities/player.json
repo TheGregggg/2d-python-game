@@ -7,7 +7,7 @@
         "maxHealth": 100,
         "maxEnergy": 100,
         "atkPerSec": 0.3,
-        "atkBaseDamage": 25
+        "atkBaseDamage": 10
     },
     "collider":{
         "size": {
@@ -40,7 +40,13 @@
         "time": 0.17,
         "normalSpeed": 0.17,
         "maxSpeed": 0.1,
-        "default state": 1
+        "default state": 1,
+        "attack": {
+            "stepTime": 0.05,
+            "steps":[
+                {"x" : 0, "y": 0, "rotation": 0}
+            ]
+        }
     },
     "camera":{
         "smoothOffset": 0.2

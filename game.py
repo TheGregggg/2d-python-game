@@ -14,13 +14,18 @@ import pygame
 from pygame.locals import *
 
 actions = {
-    "up":     pygame.K_UP,
-    "down":   pygame.K_DOWN,
-    "right":  pygame.K_RIGHT,
-    "left":   pygame.K_LEFT,
+    "up":     pygame.K_w,
+    "down":   pygame.K_s,
+    "right":  pygame.K_d,
+    "left":   pygame.K_a,
     "sprint": pygame.K_LSHIFT,
     "attack": pygame.K_SPACE,
     "inventory": pygame.K_i
+}
+
+weaponTypeAPSMultiplier = {
+    'sword': 1,
+    'mace': 2
 }
 
 class Item():
@@ -56,11 +61,11 @@ class Item():
         sprite = pygame.transform.scale(self.sprite.convert_alpha(),itemScale)
         sprite = pygame.transform.rotate(sprite,-45)
 
-        passThrough['window'].blit(sprite, (coords['left']-(6*scale) , coords['top']-(17.5*scale)))
+        passThrough['window'].blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
 
 class Inventory():
     def __init__(self):
-        self.slots = [[None,None,None,None],[None,None,None,None]]
+        self.slots = [[None,None,Item({'itemRepr':'normal_mace'}),None],[None,None,None,None]]
         self.hands = None
         self.isOpen = False
     
@@ -72,49 +77,67 @@ class Inventory():
             'top': 8,
             'height': 50,
             'width': 50,
-            'inventory-margin': 10
+            'inventory-margin': 5
         }
         coords['left'] = width - coords['width']*scale - coords['right']*scale
         coords['top'] *= scale
         transparency = 150
         radius = 10
+        radius *= scale
 
         rects, circles = gFunction.createRectWithRoundCorner(0,0,coords['width']*scale,coords['height']*scale,radius)
-        s = pygame.Surface((coords['width']*scale,coords['height']*scale), pygame.SRCALPHA)
+        case = pygame.Surface((coords['width']*scale,coords['height']*scale), pygame.SRCALPHA)
         for rect in rects:
-            pygame.draw.rect(s,(0,0,0,transparency),Rect(rect))
+            pygame.draw.rect(case,(0,0,0,transparency),Rect(rect))
         for circle in circles:
-            pygame.draw.circle(s,(0,0,0,transparency),circle,radius)
+            pygame.draw.circle(case,(0,0,0,transparency),circle,radius)
 
         if passThrough['currentHUD'] == 'main':
-            passThrough['window'].blit(s, (coords['left'], coords['top']))
+            passThrough['window'].blit(case, (coords['left'], coords['top']))
 
             if self.hands is not None:
                 self.hands.drawSprite(scale,coords, passThrough)
                 #passThrough['window'].blit(sprite, (width - coords['width']*scale - coords['right']*scale -8, -26+coords['top']*scale))
+            if passThrough['mousePos'] is not None and Rect( (coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePos']):
+                    self.isOpen = True
         
 
         if passThrough['currentHUD'] == 'inventory':
-            inventory = pygame.Surface((
-                len(self.slots[0]) * (coords['width']  + coords['inventory-margin'])*scale,
-                len(self.slots)    * (coords['height'] + coords['inventory-margin'])*scale), pygame.SRCALPHA)
+            stepHeight = coords['height'] + coords['inventory-margin']*2
+            stepWidth  = coords['width']  + coords['inventory-margin']*2
+
+            invWidth  = len(self.slots[0]) * stepWidth *scale
+            invHeight = len(self.slots)    * stepHeight *scale
+            startLeft = width/2  - invWidth/2
+            startTop  = height/2 - invHeight/2
+
+            cases = []
+
             for y,y_value in enumerate(self.slots):
                 for x,x_value in enumerate(y_value):
-                    place = (coords['inventory-margin']*scale+(x*scale*coords['width']+x*scale*coords['inventory-margin']),coords['inventory-margin']*scale+(y*coords['height']*scale+y*scale*coords['inventory-margin']))
-                    coords['left'],coords['right'] = place
+                    placeLeft = startLeft + x*(stepWidth + coords['inventory-margin'])*scale
+                    placeTop  = startTop  + y*(stepHeight + coords['inventory-margin'])*scale
+                    cases.append({'place':(placeLeft,placeTop),'x_value':x_value,'x':x,'y':y})
 
-                    inventory.blit(s,place)
-                    if x_value is not None:
-                        x_value.drawSprite(scale,coords,passThrough)
-            
-            invWidth, invHeight = inventory.get_size()
+            cases.append({
+                'place':(int(width/2 - coords['width']/2*scale + coords['inventory-margin']*scale/2),int(height/2 - coords['height']*2*scale - coords['inventory-margin']*4*scale)),
+                'x_value':self.hands})
 
-            passThrough['window'].blit(inventory, (width/2 - invWidth/2, height/2 - invHeight/2))
+            for caseInfo in cases:
+                passThrough['window'].blit(case,caseInfo['place'])
+                
+                if caseInfo['x_value'] is not None:
+                    coords['left'],coords['top'] = caseInfo['place']
+                    caseInfo['x_value'].drawSprite(scale,coords,passThrough)
 
-            coords['left'],coords['top'] = (width/2 - coords['width']/2*scale + coords['inventory-margin']*scale/2, height/2 - coords['height']*scale*2 - coords['inventory-margin']*scale)
-            passThrough['window'].blit(s, (coords['left'],coords['top']))
-            if self.hands is not None:
-                self.hands.drawSprite(scale,coords,passThrough)
+                if passThrough['mousePos'] is not None:
+                    if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePos']):
+                        if 'y' in caseInfo:
+                            temp = self.hands
+                            self.hands = self.slots[caseInfo['y']][caseInfo['x']]
+                            self.slots[caseInfo['y']][caseInfo['x']] = temp
+                        else:
+                            self.isOpen = False
 
 class Player(gregngine.Entity):
     def __init__(self, param):
@@ -190,11 +213,20 @@ class Player(gregngine.Entity):
         self.camera.yOffset = -(y/2) + self.param['y']
 
     def attack(self):
-        if self.inventory.hands.data['type'] != 'weapon':
+        if self.inventory.hands is None:
+            atkPerSec = self.stats['atkPerSec']
+            damage = self.stats['atkBaseDamage']
+        elif self.inventory.hands.data['type'] != 'weapon':
             return None
+        else:
+            atkPerSec = self.stats['atkPerSec']*weaponTypeAPSMultiplier.get(self.inventory.hands.data['weaponType'])
+            damage = self.stats['atkBaseDamage'] + self.inventory.hands.data['stats']['damage']
+
+
+        
 
         currentTime = time.time()   
-        if currentTime-self.lastAttackTime >= self.stats['atkPerSec']:
+        if currentTime-self.lastAttackTime >= atkPerSec:
             self.lastAttackTime = currentTime 
 
             dico = {
@@ -218,7 +250,7 @@ class Player(gregngine.Entity):
             elif lookingTo == 'bottom':
                 attackRect.top += self.param['newPixelScale']
 
-            return {'attackRect':attackRect,'damage':self.stats['atkBaseDamage']}
+            return {'attackRect':attackRect,'damage':damage}
 
         else:
             return None
@@ -321,10 +353,15 @@ class Engine(gregngine.Engine):
 
         # inventory code
         inventoryPressed = False
+
+        self.mousePos = None
         for event in inputEvent:
             if event.type == pygame.KEYDOWN:
                 if event.key==actions["inventory"]:
                     inventoryPressed = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.mousePos = pygame.mouse.get_pos()
+            
         if inventoryPressed:
             #self.player.inventory()
             if not self.player.inventory.isOpen:
@@ -333,6 +370,11 @@ class Engine(gregngine.Engine):
             else:
                 self.player.inventory.isOpen = False
                 self.currentHUD = 'main'
+
+        if self.player.inventory.isOpen and self.currentHUD != 'inventory':
+            self.currentHUD = 'inventory'
+        if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
+            self.currentHUD = 'main'
 
     def DrawWorld(self):
         super().DrawWorld()
