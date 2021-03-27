@@ -1,7 +1,8 @@
 {
     "name": "normal_mace",
     "displayedName": "Mace",
-    "type": "weapon",
+    "type": "item",
+    "itemType": "weapon",
     "weaponType": "mace",
     "tilemap": {
         "name":"tilemap",

@@ -1,7 +1,8 @@
 {
     "name": "normal_sword",
     "displayedName": "Sword",
-    "type": "weapon",
+    "type": "item",
+    "itemType": "weapon",
     "weaponType": "sword",
     "tilemap": {
         "name":"tilemap",

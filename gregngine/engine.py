@@ -275,8 +275,8 @@ class Engine(object):
         xEnd = xStart + self.tilesOnX + 1
         yEnd = yStart + self.tilesOnY + 2
 
-        offx = round(CameraPosX - xStart,3) + 0.5
-        offy = round(CameraPosY - yStart,3) + 0.5
+        offx = round(CameraPosX - xStart,3) + 0.25
+        offy = round(CameraPosY - yStart,3) + 0.25
 
         dic = {
             "yStart":yStart,
@@ -316,7 +316,7 @@ class Engine(object):
 
     def applyPhysicalChanges(self,deltaTime):
         for entitie in self.entitiesManager.entities:
-            if entitie.data['type'] != 'player':
+            if entitie.data['type'] == 'monster':
                 if entitie.stats['health'] <= 0:
                     self.entitiesManager.killEntity(entitie)
             entitie.move(self.clock.get_time())
@@ -328,7 +328,7 @@ class Engine(object):
         coords = self.ScreenToWorldCoords
 
         entities = self.entitiesManager.visibleEntities
-        entities = sorted(entities, key=lambda ent: ent.y)
+        entities = sorted(entities, key=lambda ent: ent.y-1 if ent.data['type'] == 'item' else ent.y )
 
         for entitie in entities:
             entitie.draw(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{'debug':self.debugMode,'window':self.window})
@@ -339,11 +339,13 @@ class Engine(object):
 
     def DrawHUDs(self):
         coords = self.ScreenToWorldCoords
-        for entitie in self.entitiesManager.entities:
+        visibleEnt = self.entitiesManager.visibleEntities
+        for entitie in visibleEnt:
             passThrough = {
                 "window": self.window,
                 "HudScale": self.param['HudScale'],
                 "currentHUD": self.currentHUD,
-                "mousePos": self.mousePos
+                "mousePos": self.mousePos,
+                "visibleEntities": visibleEnt
                 }
             entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)

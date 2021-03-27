@@ -33,10 +33,17 @@ class Item():
         """
         param = {
             itemRepr
+            "pixelSize": 16,
+            "scaleMultiplier": 6,
         }
         """
     
         self.param = param
+        self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
+
+        self.isGrounded = False
+        self.x = 0
+        self.y = 0
 
         with open("items/" + param['itemRepr'] + ".json","r") as file:
             self.data = json.load(file)
@@ -55,6 +62,9 @@ class Item():
         location = (self.tilemapSettings['start'][0], self.tilemapSettings['start'][1])
         self.sprite = self.tilemap.subsurface(pygame.Rect(location, self.tilemapSettings['size']))
 
+        itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
+        self.groundSprite = pygame.transform.scale(self.sprite,itemScale)
+
     def drawSprite(self,scale,coords,passThrough):
         tilemap = self.data['tilemap']
         itemScale = (int(coords['width']*scale*tilemap['scaling']/tilemap['ratio']),int(coords['height']*scale*tilemap['scaling']))
@@ -63,11 +73,25 @@ class Item():
 
         passThrough['window'].blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
 
+    def draw(self, xStart, yStart, passThrough):
+        if self.isGrounded:
+            xToDraw = self.x - xStart 
+            yToDraw = self.y - yStart 
+
+            passThrough['window'].blit(self.groundSprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale'] - self.groundSprite.get_height()/4))
+
+    def move(self, dtime):
+        pass
+
+    def drawHud(self, xPos, yPos, passThrough):
+        pass
+
 class Inventory():
     def __init__(self):
-        self.slots = [[None,None,Item({'itemRepr':'normal_mace'}),None],[None,None,None,None]]
+        self.slots = [[None,None,None,None],[None,None,None,None]]
         self.hands = None
         self.isOpen = False
+        self.player = None
     
     def drawHud(self,passThrough):
         scale = passThrough['HudScale']
@@ -122,6 +146,10 @@ class Inventory():
             cases.append({
                 'place':(int(width/2 - coords['width']/2*scale + coords['inventory-margin']*scale/2),int(height/2 - coords['height']*2*scale - coords['inventory-margin']*4*scale)),
                 'x_value':self.hands})
+            
+            for entity in passThrough['visibleEntities']:
+                if entity.x == round(self.player.x) and entity.y == round(self.player.y):
+                    print(entity)
 
             for caseInfo in cases:
                 passThrough['window'].blit(case,caseInfo['place'])
@@ -148,7 +176,8 @@ class Player(gregngine.Entity):
 
         self.camera = None
         self.inventory = Inventory()
-        self.inventory.hands = Item({"itemRepr":'normal_sword'})
+        self.inventory.player = self
+        self.inventory.hands = Item({"itemRepr":'normal_sword',"pixelSize": 16,"scaleMultiplier": 6,})
 
         self.velocity = {"x": 0, "y": 0}
 
@@ -231,7 +260,7 @@ class Player(gregngine.Entity):
         if self.inventory.hands is None:
             atkPerSec = self.stats['atkPerSec']
             damage = self.stats['atkBaseDamage']
-        elif self.inventory.hands.data['type'] != 'weapon':
+        elif self.inventory.hands.data['itemType'] != 'weapon':
             return None
         else:
             atkPerSec = self.stats['atkPerSec']*weaponTypeAPSMultiplier.get(self.inventory.hands.data['weaponType'])
@@ -340,7 +369,14 @@ class Engine(gregngine.Engine):
         self.mainCamera.setPos(0,0)
         self.loadSaves()
 
+        sword = Item({'itemRepr':'normal_sword',"pixelSize": 16,
+            "scaleMultiplier": 6,})
+        sword.x = 10
+        sword.y = 6
+        sword.isGrounded = True
+
         self.entitiesManager.addEntity(self.player)
+        self.entitiesManager.addEntity(sword)
         self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 
     def rezizeSprites(self):
@@ -400,7 +436,7 @@ class Engine(gregngine.Engine):
 
             if attackinfo is not None:
                 for entity in self.entitiesManager.visibleEntities:
-                    if attackinfo['attackRect'].colliderect(entity.rect) and entity.data['type'] == 'monster':
+                    if entity.data['type'] == 'monster' and attackinfo['attackRect'].colliderect(entity.rect):
                         print("Hit " + entity.name)
                         entity.stats['health'] -= attackinfo['damage']
 
@@ -438,7 +474,6 @@ class Engine(gregngine.Engine):
         self.collisions = {}
 
         coords = self.ScreenToWorldCoords
-
 
         for y_index,y in enumerate(self.world.world[coords['yStart']:coords['yEnd']]):
             for x_index,x in enumerate(y[coords['xStart']:coords['xEnd']]):
@@ -525,7 +560,7 @@ class Engine(gregngine.Engine):
                     points[point]["value"] = rect.collidepoint(points[point]["pos"])
         
         for entity in self.entitiesManager.visibleEntities:
-            if entity.data['type'] != "player":
+            if entity.data['type'] != "player" and entity.data['type'] != 'item':
                 for point in points.keys():
                     if points[point]["value"] == 0:
                         points[point]["value"] = entity.rect.collidepoint(points[point]["pos"])
