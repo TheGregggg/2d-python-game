@@ -393,7 +393,14 @@ class Engine(gregngine.Engine):
         self.entitiesManager.addEntity(sword)
         self.entitiesManager.addEntity(mace)
 
-        self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
+        """self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim4","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':15}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim5","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':16}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat2","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':7,'y':15}))
+        self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat3","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':8,'y':15}))"""
 
     def rezizeSprites(self):
         elems = ["g","s","r"]
@@ -410,21 +417,27 @@ class Engine(gregngine.Engine):
                 adj = entity.x - self.player.x
                 opo = entity.y - self.player.y
                 hypo = math.sqrt(adj**2 + opo**2)
+
+                if hypo < 0.7:
+                    entity.isAttacking = True
+
                 coef = 1/hypo
                 x = -adj * coef
                 y = -opo * coef
 
-                if x > 0 and "Right" in walls:
-                    x *= 0
-                if x < 0 and "Left" in walls:
-                    x *= 0
-                if y > 0 and "Bottom" in walls:
-                    y *= 0
-                if y < 0 and "Top" in walls:
-                    y *= 0
-
-                entity.setVelocity(x,y)
                 entity.setOrientation(x,y)
+                
+                if entity.isAttacking is False:
+                    if x > 0 and "Right" in walls:
+                        x *= 0
+                    if x < 0 and "Left" in walls:
+                        x *= 0
+                    if y > 0 and "Bottom" in walls:
+                        y *= 0
+                    if y < 0 and "Top" in walls:
+                        y *= 0
+
+                    entity.setVelocity(x,y)
         
     def playerInput(self,inputEvent,inputPressed):
         playerSpeedY,playerSpeedX = 0, 0

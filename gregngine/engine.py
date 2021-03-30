@@ -148,12 +148,16 @@ class Entity(object):
         self.stats = self.data["stats"]
         self.stats["health"] = self.stats["maxHealth"]
 
+        self.lastAttackTime = time.time()
+        self.isAttacking = False
+        self.atkAnim = {'lastStep':-1,'lastTime':0}
+
         self.animator = Animator(self.data,param)
 
     def move(self, dTime):
         x,y = self.velocity['x'],self.velocity['y']
         x,y = x*self.stats["speed"],y*self.stats["speed"]
-        x,y = (x * dTime * 0.001,y * dTime * 0.001)
+        x,y = x * dTime * 0.001,y * dTime * 0.001
 
         self.x += x
         self.y += y
