@@ -40,9 +40,15 @@ class Item():
         self.param = param
         self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
 
-        self.isGrounded = False
-        self.x = 0
-        self.y = 0
+        if not 'x' in param:
+            self.isGrounded = False
+            self.x = 0
+            self.y = 0
+        else:
+            self.isGrounded = param['isGrounded']
+            self.x = param['x']
+            self.y = param['y']
+
 
         with open("items/" + param['itemRepr'] + ".json","r") as file:
             self.data = json.load(file)
@@ -146,7 +152,7 @@ class Inventory():
                 'x_value':self.hands,
                 'ground':False})
             
-            ents = [ent for ent in passThrough['visibleEntities'] if ent.data['type'] != 'player' and ent.x == round(self.player.x) and ent.y == round(self.player.y)]
+            ents = [ent for ent in passThrough['visibleEntities'] if ent.data['type'] == 'item' and ent.x == round(self.player.x) and ent.y == round(self.player.y)]
 
             if len(ents) > 0:
                 groundItemWidth  = len(ents) * stepWidth * scale
@@ -206,8 +212,6 @@ class Player(gregngine.Entity):
         self.inventory = Inventory()
         self.inventory.player = self
 
-        self.velocity = {"x": 0, "y": 0}
-
         self.health = self.stats["maxHealth"]
         self.energy = self.stats["maxEnergy"]
 
@@ -256,21 +260,6 @@ class Player(gregngine.Entity):
             self.camera.move(0,y)
 
         self.setVelocity(0,0)
-
-    def setVelocity(self,x,y):
-        self.velocity = {"x": x, "y": y}
-
-    def setOrientation(self,x,y):
-        if x == 0 and y < 0:
-            self.animator.setAnimation('TOP WALK')
-        elif x == 0 and y > 0:
-            self.animator.setAnimation('BOTTOM WALK')
-        elif x < 0:
-            self.animator.setAnimation('LEFT WALK')
-        elif x > 0:
-            self.animator.setAnimation('RIGHT WALK')
-        else:
-            self.animator.setAnimation('IDLE')
 
     def increaseEnergy(self,dtime):
     
@@ -378,7 +367,7 @@ class Engine(gregngine.Engine):
         self.world = world
         self.newPixelScale = self.param['newPixelScale']
 
-        self.collisionsDistance = 2.2
+        self.collisionsDistance = 1.5
         self.collisionsDistance *= self.newPixelScale
         self.collisions = {}
 
@@ -397,14 +386,12 @@ class Engine(gregngine.Engine):
         self.mainCamera.setPos(0,0)
         self.loadSaves()
 
-        sword = Item({'itemRepr':'normal_sword',"pixelSize": 16,
-            "scaleMultiplier": 6,})
-        sword.x = 10
-        sword.y = 6
-        sword.isGrounded = True
+        sword = Item({'itemRepr':'normal_sword',"pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':6,'isGrounded':True})
+        mace  = Item({'itemRepr':'normal_mace' ,"pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':11,'y':6,'isGrounded':True})
 
         self.entitiesManager.addEntity(self.player)
         self.entitiesManager.addEntity(sword)
+        self.entitiesManager.addEntity(mace)
 
         self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 
@@ -414,13 +401,36 @@ class Engine(gregngine.Engine):
             self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
 
     def main(self,inputEvent,inputPressed):
+        self.checkCollision()
         self.playerInput(inputEvent,inputPressed)
+
+        for entity in self.entitiesManager.visibleEntities:
+            if entity.data['type'] == 'monster':
+                walls = entity.walls
+                adj = entity.x - self.player.x
+                opo = entity.y - self.player.y
+                hypo = math.sqrt(adj**2 + opo**2)
+                coef = 1/hypo
+                x = -adj * coef
+                y = -opo * coef
+
+                if x > 0 and "Right" in walls:
+                    x *= 0
+                if x < 0 and "Left" in walls:
+                    x *= 0
+                if y > 0 and "Bottom" in walls:
+                    y *= 0
+                if y < 0 and "Top" in walls:
+                    y *= 0
+
+                entity.setVelocity(x,y)
+                entity.setOrientation(x,y)
         
     def playerInput(self,inputEvent,inputPressed):
         playerSpeedY,playerSpeedX = 0, 0
         playerMouvY,playerMouvX = 0, 0
 
-        walls = self.checkWorld()
+        walls = self.player.walls
 
         if inputPressed[actions["sprint"]]:
             self.player.running = True
@@ -500,9 +510,9 @@ class Engine(gregngine.Engine):
         widthBy2 = self.param['width']/2
         heightBy2 = self.param['height']/2
 
-        self.collisions = {}
-
         coords = self.ScreenToWorldCoords
+        for entity in self.entitiesManager.visibleEntities:
+            entity.collisions = {}
 
         for y_index,y in enumerate(self.world.world[coords['yStart']:coords['yEnd']]):
             for x_index,x in enumerate(y[coords['xStart']:coords['xEnd']]):
@@ -514,96 +524,104 @@ class Engine(gregngine.Engine):
 
                 else:
                     self.window.blits(((self.world.sprites[x], coord),(self.world.sprites[wall], coord)))
-                    dist = math.hypot(coord[0]-widthBy2, coord[1]-heightBy2)
-                    if abs(dist) < self.collisionsDistance:
-                        self.collisions[(y_index,x_index)] = coord
-                    
-                        if self.debugMode == True:
-                            pygame.draw.rect(self.window,(255,0,0),Rect(coord,(self.newPixelScale,self.newPixelScale)))
+                    for entity in self.entitiesManager.visibleEntities:
+                        if entity.data['type'] != 'item':
+                            x,y = entity.x - (coords['xStart'] + coords['offx']),entity.y - (coords['yStart']+coords['offy'])
+                            x,y = x*self.param['newPixelScale'], y*self.param['newPixelScale']
+                            dist = math.hypot(coord[0]-x, coord[1]-y)
+                            if abs(dist) < self.collisionsDistance:
+                                if (y_index,x_index) not in self.collisions:
+                                    entity.collisions[(y_index,x_index)] = coord
+                            
+                                if self.debugMode == True:
+                                    pygame.draw.rect(self.window,(255,0,0),Rect(coord,(self.newPixelScale,self.newPixelScale)))
         
-    def checkWorld(self):
-        walls = []
+    def checkCollision(self):
+        ents = [ent for ent in self.entitiesManager.visibleEntities if ent.data['type'] != 'item']
+        for Entity in ents:
+            walls = []
 
-        yPlayerMin, yPlayerMax = math.floor(self.player.y), math.ceil(self.player.y)
-        xPlayerMin, xPlayerMax = math.floor(self.player.x), math.ceil(self.player.x)
+            yEntityMin, yEntityMax = math.floor(Entity.y), math.ceil(Entity.y)
+            xEntityMin, xEntityMax = math.floor(Entity.x), math.ceil(Entity.x)
 
-        points = {
-            "topleft": {
-                "value": 0,
-                "pos": self.player.rect.topleft
-            },
-            "topleftbottom": {
-                "value": 0,
-                "pos": (self.player.rect.topleft[0],self.player.rect.topleft[1]+self.player.colAngleSize)
-            },
-            "toplefttop": {
-                "value": 0,
-                "pos": (self.player.rect.topleft[0]+self.player.colAngleSize,self.player.rect.topleft[1])
-            },
+            points = {
+                "topleft": {
+                    "value": 0,
+                    "pos": Entity.rect.topleft
+                },
+                "topleftbottom": {
+                    "value": 0,
+                    "pos": (Entity.rect.topleft[0],Entity.rect.topleft[1]+Entity.colAngleSize)
+                },
+                "toplefttop": {
+                    "value": 0,
+                    "pos": (Entity.rect.topleft[0]+Entity.colAngleSize,Entity.rect.topleft[1])
+                },
 
-            "topright": {
-                "value": 0,
-                "pos": self.player.rect.topright
-            },
-            "toprighttop": {
-                "value": 0,
-                "pos": (self.player.rect.topright[0]-self.player.colAngleSize,self.player.rect.topright[1])
-            },
-            "toprightbottom": {
-                "value": 0,
-                "pos": (self.player.rect.topright[0],self.player.rect.topright[1]+self.player.colAngleSize)
-            },
+                "topright": {
+                    "value": 0,
+                    "pos": Entity.rect.topright
+                },
+                "toprighttop": {
+                    "value": 0,
+                    "pos": (Entity.rect.topright[0]-Entity.colAngleSize,Entity.rect.topright[1])
+                },
+                "toprightbottom": {
+                    "value": 0,
+                    "pos": (Entity.rect.topright[0],Entity.rect.topright[1]+Entity.colAngleSize)
+                },
 
-            "bottomright": {
-                "value": 0,
-                "pos": self.player.rect.bottomright
-            },
-            "bottomrighttop": {
-                "value": 0,
-                "pos": (self.player.rect.bottomright[0],self.player.rect.bottomright[1]-self.player.colAngleSize)
-            },
-            "bottomrightbottom": {
-                "value": 0,
-                "pos": (self.player.rect.bottomright[0]-self.player.colAngleSize,self.player.rect.bottomright[1])
-            },
+                "bottomright": {
+                    "value": 0,
+                    "pos": Entity.rect.bottomright
+                },
+                "bottomrighttop": {
+                    "value": 0,
+                    "pos": (Entity.rect.bottomright[0],Entity.rect.bottomright[1]-Entity.colAngleSize)
+                },
+                "bottomrightbottom": {
+                    "value": 0,
+                    "pos": (Entity.rect.bottomright[0]-Entity.colAngleSize,Entity.rect.bottomright[1])
+                },
 
-            "bottomleft": {
-                "value": 0,
-                "pos": self.player.rect.bottomleft
-            },
-            "bottomlefttop": {
-                "value": 0,
-                "pos": (self.player.rect.bottomleft[0],self.player.rect.bottomleft[1]-self.player.colAngleSize)
-            },
-            "bottomleftbottom": {
-                "value": 0,
-                "pos": (self.player.rect.bottomleft[0]+self.player.colAngleSize,self.player.rect.bottomleft[1])
+                "bottomleft": {
+                    "value": 0,
+                    "pos": Entity.rect.bottomleft
+                },
+                "bottomlefttop": {
+                    "value": 0,
+                    "pos": (Entity.rect.bottomleft[0],Entity.rect.bottomleft[1]-Entity.colAngleSize)
+                },
+                "bottomleftbottom": {
+                    "value": 0,
+                    "pos": (Entity.rect.bottomleft[0]+Entity.colAngleSize,Entity.rect.bottomleft[1])
+                }
             }
-        }
 
-        for collisions in self.collisions.keys():
-            rect = Rect(self.collisions[collisions],(self.newPixelScale,self.newPixelScale))
+            for collisions in Entity.collisions.keys():
+                rect = Rect(Entity.collisions[collisions],(self.newPixelScale,self.newPixelScale))
 
-            for point in points.keys():
-                if points[point]["value"] == 0:
-                    points[point]["value"] = rect.collidepoint(points[point]["pos"])
-        
-        for entity in self.entitiesManager.visibleEntities:
-            if entity.data['type'] != "player" and entity.data['type'] != 'item':
                 for point in points.keys():
                     if points[point]["value"] == 0:
-                        points[point]["value"] = entity.rect.collidepoint(points[point]["pos"])
+                        
+                        points[point]["value"] = rect.collidepoint(points[point]["pos"])
             
-        if points["topleft"]["value"] and points["toplefttop"]["value"] or points["topright"]["value"] and points["toprighttop"]["value"]:
-            walls.append("Top")
-        if points["bottomleft"]["value"] and points["bottomleftbottom"]["value"] or points["bottomright"]["value"] and points["bottomrightbottom"]["value"]:
-            walls.append("Bottom")
-        if points["topleft"]["value"] and points["topleftbottom"]["value"] or points["bottomleft"]["value"] and points["bottomlefttop"]["value"]:
-            walls.append("Left")
-        if points["topright"]["value"] and points["toprightbottom"]["value"] or points["bottomright"]["value"] and points["bottomrighttop"]["value"]:
-            walls.append("Right")
+            for entity in self.entitiesManager.visibleEntities:
+                if entity != Entity and entity.data['type'] != 'item':
+                    for point in points.keys():
+                        if points[point]["value"] == 0:
+                            points[point]["value"] = entity.rect.collidepoint(points[point]["pos"])
+                
+            if points["topleft"]["value"] and points["toplefttop"]["value"] or points["topright"]["value"] and points["toprighttop"]["value"]:
+                walls.append("Top")
+            if points["bottomleft"]["value"] and points["bottomleftbottom"]["value"] or points["bottomright"]["value"] and points["bottomrightbottom"]["value"]:
+                walls.append("Bottom")
+            if points["topleft"]["value"] and points["topleftbottom"]["value"] or points["bottomleft"]["value"] and points["bottomlefttop"]["value"]:
+                walls.append("Left")
+            if points["topright"]["value"] and points["toprightbottom"]["value"] or points["bottomright"]["value"] and points["bottomrighttop"]["value"]:
+                walls.append("Right")
 
-        return walls
+            Entity.walls = walls
 
 engineParameters = {
     "height" : 800,

@@ -132,6 +132,10 @@ class Entity(object):
 
         self.x = param['x']
         self.y = param['y']
+        self.velocity = {"x": 0, "y": 0}
+
+        self.walls = []
+        self.collisions = {}
 
         self.rect = Rect(0,0,0,0)
 
@@ -146,8 +150,30 @@ class Entity(object):
 
         self.animator = Animator(self.data,param)
 
-    def move(self, dtime):
-        pass
+    def move(self, dTime):
+        x,y = self.velocity['x'],self.velocity['y']
+        x,y = x*self.stats["speed"],y*self.stats["speed"]
+        x,y = (x * dTime * 0.001,y * dTime * 0.001)
+
+        self.x += x
+        self.y += y
+
+        self.setVelocity(0,0)
+
+    def setVelocity(self,x,y):
+        self.velocity = {"x": x, "y": y}
+
+    def setOrientation(self,x,y):
+        if abs(x)+0.1 < abs(y) and y < 0:
+            self.animator.setAnimation('TOP WALK')
+        elif abs(x)+0.1 < abs(y) and y > 0:
+            self.animator.setAnimation('BOTTOM WALK')
+        elif x < 0 and abs(x)+0.1 > abs(y):
+            self.animator.setAnimation('LEFT WALK')
+        elif x > 0 and abs(x)+0.1 > abs(y):
+            self.animator.setAnimation('RIGHT WALK')
+        else:
+            self.animator.setAnimation('IDLE')
 
     def draw(self, xStart, yStart, passThrough):
         xToDraw = self.x - xStart 
@@ -186,7 +212,7 @@ class EntitiesManager(object):
     def getVisibleEntities(self,coords):
         self.visibleEntities = []
         for entity in self.entities:
-            if entity.x >= coords['xStart'] and entity.x <= coords['xEnd'] and entity.y >= coords['yStart'] and entity.y <= coords['yEnd']:
+            if entity.x >= coords['xStart']-1 and entity.x <= coords['xEnd'] and entity.y >= coords['yStart']-1 and entity.y <= coords['yEnd']:
                 self.visibleEntities.append(entity)
 
     def killEntity(self,ent):
