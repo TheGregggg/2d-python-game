@@ -1,0 +1,9 @@
+{
+    "height" : 800,
+    "width" : 1200,
+    "saves": "saves/saves",
+    "pixelSize": 16,
+    "scaleMultiplier": 6,
+    "HudScale": 2,
+    "debug": false
+}

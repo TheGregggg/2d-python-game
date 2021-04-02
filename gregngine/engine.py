@@ -260,7 +260,7 @@ class Engine(object):
 
         self.currentHUD = 'main'
 
-        #self.loadSaves()
+        #self.loadSaves() load save done in game.py to ensure there is a save file
         self.clock = pygame.time.Clock()
 
     def calculatesTilesOnAxis(self):  
