@@ -23,17 +23,19 @@ But final : avoir battu les 5 bosses du jeu
  - affichage moderne du jeu (fenetre réglable)
  - collision avec le monde
  - déplacement du perso dans les 4 directions
- - camera suivant le perso
+ - camera suis le perso
  - perso peut sprinter (utilise de l'énergie)
  - animation du perso dans les 4 directions
  - systeme de 'main' et d'inventaire 
- - peut ramaser object au sol
+ - peut ramasser object au sol
  - perso peut attaquer
  - animation attaque avec l'arme équipé dans la 'main'
- - degat affliger au monstre en fonction des statistiques de l'arme equipé
+ - degat infligé au monstre en fonction des statistiques de l'arme equipée
  - monstre avec systeme de pv et de collision
  - monstre déplace dans 4 direction + animation
  - monstre suit le joueur
+ - monstre attaque le joueur
+ - animation attaque du monstre
  - HUD d'inventaire
  - HUD pv des monstres au dessus d'eux
 
@@ -45,9 +47,23 @@ But final : avoir battu les 5 bosses du jeu
  - sprites : dossier contenant les differents images 
  - pickle5 : dossier contenant la derniere version de pickle pour assurer la compatibilité entre python 3.8 et 3.6
 
+## Todo:
+ - refactor attaque animation pour entitées et player
+ - créer menu démarrer 
+ - créer menu in-game (touche esc)
+ - créer  items utilisable (potion)
+ - gestion argent perso
+ - gestion experience + montée de niveau perso
+ - gestion drop quand monstre meurt
+ - npc pour acheter objects
+ - systeme sauvegarde
+    - save entitées present au format json 
+    - save player format json
+    - load -> utiliser c'est fichier de sauvegarde apres les fichiers d'init (present dans /./entities) pour overwrite les éléments sauvegardés
+
 ## Gregngine:
-Gregngine est le moteur de jeu réaliser pour crée des jeux en 2d et en vue de dessus.
-Il s'occupe de la gestion des entitées (perso,ennemies,items ...), de la physique et de l'affichages des elements et HUDs.
+Gregngine est le moteur de jeu réalisé pour créer des jeux en 2d et en vue de dessus.
+Il s'occupe de la gestion des entitées (perso,ennemies,items ...), de la physique et de l'affichage des elements et HUDs.
 Il contient tout ce qui est réutilisable et non propre au projet actuelle.
 
 ## Flow :
@@ -55,7 +71,7 @@ Il contient tout ce qui est réutilisable et non propre au projet actuelle.
 ![alt text](readme/graph.png "graph")
 
 - main() -> appelle la fonction main a chaque frame
-- applyPhysicalChanges() -> applique la physique a chaque entitées, pour chaque entitées, leur fonction .move() est appelée
-- Draws() -> appelle pour chaque entitées visible leur fonction .draw()
-- DrawHUDs -> appelle pour chaque entitées visible leur fonction .drawHUD()
-- clock.tick(120) -> bloque le jeu a 120 fps
+- applyPhysicalChanges() -> applique la physique à chaque entitées, pour chaque entitée, leur fonction .move() est appelée
+- Draws() -> appelle pour chaque entitée visible leur fonction .draw()
+- DrawHUDs -> appelle pour chaque entitée visible leur fonction .drawHUD()
+- clock.tick(120) -> bloque le jeu à 120 fps
