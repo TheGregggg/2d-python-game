@@ -125,6 +125,8 @@ class Entity(object):
 			"scaleMultiplier": 6,
 		}
 		"""
+		pygame.init()
+
 		self.param = param
 		self.name = param['name']
 
@@ -255,21 +257,23 @@ class Entity(object):
 		xToDraw = self.x - xStart 
 		yToDraw = self.y - yStart
 
-		self.animator.setFrame()
+		if not passThrough['isPaused']:
+			self.animator.setFrame()
 
 		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
 		if passThrough['debug'] == True:
 			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
-		
-		animationSurface = self.attackAnimation()
+
+		if not passThrough['isPaused']:
+			self.animationSurface = self.attackAnimation()
 
 		if self.data['type'] == 'player':
 			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
-		elif animationSurface is None:
+		elif self.animationSurface is None:
 			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
-		if animationSurface is not None:
-			passThrough['window'].blit(animationSurface,((xToDraw-1)*self.param['newPixelScale'], (yToDraw-1)*self.param['newPixelScale']))
+		if self.animationSurface is not None:
+			passThrough['window'].blit(self.animationSurface,((xToDraw-1)*self.param['newPixelScale'], (yToDraw-1)*self.param['newPixelScale']))
 
 	def drawHud(self, xPos, yPos, passThrough):
 		if passThrough['currentHUD'] == 'main':
@@ -304,6 +308,17 @@ class EntitiesManager(object):
 			if entity == ent:
 				self.entities.remove(entity)
 
+class HUDMenuManager(object):
+	def __init__(self,hudScale):
+		self.hudScale = hudScale
+
+		self.huds = {}
+
+	def drawHud(self,passThrough):
+		f = self.huds.get(passThrough['currentHUD'])
+		if f is not None:
+			f['fonction'](passThrough)
+	
 class Engine(object):
 	def __init__(self,param):
 		"""
@@ -327,6 +342,11 @@ class Engine(object):
 		self.param = param
 		self.debugMode = param["debug"]
 
+		self.states = {								# states for the engine, in relation with the currentHUD, match hud page with the game state
+			'play': [],								# pause -> the game will not call the entities .draw() methods 
+			'pause': []
+		}
+
 		self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
 		self.calculatesTilesOnAxis()
 
@@ -339,6 +359,7 @@ class Engine(object):
 		self.entitiesManager = EntitiesManager()
 
 		self.currentHUD = 'main'
+		self.HUDMenuManager = HUDMenuManager(param['HudScale'])
 
 		#self.loadSaves() load save done in game.py to ensure there is a save file
 		self.clock = pygame.time.Clock()
@@ -438,14 +459,15 @@ class Engine(object):
 	def Draws(self):
 		self.getTilesOnScreen()
 		self.DrawWorld()
-
 		coords = self.ScreenToWorldCoords
 
 		entities = self.entitiesManager.visibleEntities
 		entities = sorted(entities, key=lambda ent: ent.y-1 if ent.data['type'] == 'item' else ent.y )
 
+		isPaused = self.currentHUD in self.states['pause']
+
 		for entitie in entities:
-			entitie.draw(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{'debug':self.debugMode,'window':self.window})
+			entitie.draw(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{'debug':self.debugMode,'window':self.window,'isPaused':isPaused})
 	
 	def DrawWorld(self):
 		self.window.fill((0,0,0)) 
@@ -454,12 +476,15 @@ class Engine(object):
 	def DrawHUDs(self):
 		coords = self.ScreenToWorldCoords
 		visibleEnt = self.entitiesManager.visibleEntities
+		passThrough = {
+			"window": self.window,
+			"HudScale": self.param['HudScale'],
+			"currentHUD": self.currentHUD,
+			"mousePos": self.mousePos,
+			"visibleEntities": visibleEnt
+		}
+
+		self.HUDMenuManager.drawHud(passThrough)
+
 		for entitie in visibleEnt:
-			passThrough = {
-				"window": self.window,
-				"HudScale": self.param['HudScale'],
-				"currentHUD": self.currentHUD,
-				"mousePos": self.mousePos,
-				"visibleEntities": visibleEnt
-				}
 			entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)

@@ -19,13 +19,111 @@ actions = {
 	"left":   pygame.K_a,
 	"sprint": pygame.K_LSHIFT,
 	"attack": pygame.K_SPACE,
-	"inventory": pygame.K_i
+	"inventory": pygame.K_i,
+	"pause": pygame.K_ESCAPE
 }
 
 weaponTypeAPSMultiplier = {
 	'sword': 1,
 	'mace': 2
 }
+class HUDMenuManager(gregngine.HUDMenuManager):
+	def __init__(self,hudScale):
+		super().__init__(hudScale)
+
+		self.pauseMenuIsOpen = False
+
+		self.param = {
+			'margin': 5,
+			'fontSize': 20,
+			'padding': {
+				'height': 6,
+				'width': 10
+			},
+			'radius': 10,
+			'alpha': {
+				'normal': 50,
+				'hover': 150
+			},
+			'color': (255,255,255,255)
+		}
+
+		self.huds = {
+			"startMenu": self.startMenu,
+			"pauseMenu": {
+				'fonction': self.pauseMenu,
+				'buttons': [
+					{
+						'text': 'retour',
+					},
+					{
+						'text': 'sauvegarder',
+					},
+					{
+						'text': 'options',
+					},
+					{
+						'text': 'quitter',
+					}
+				]
+			}
+		}
+	
+	def startMenu(self, passThrough):
+		pass
+	
+	def pauseMenu(self, passThrough):
+		screenWidth, screenHeight = passThrough['window'].get_size()
+
+		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
+		background.fill((0,0,0,75))
+		passThrough['window'].blit(background, (0,0))
+
+		scale = self.hudScale
+		
+		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', self.param['fontSize']*scale)
+
+		imgWidth, imgHeight = self.font.size('h')
+		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
+		top = int(screenHeight/2 - topHeight/2)
+
+		self.mousePos = pygame.mouse.get_pos()
+
+		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
+
+		for button in self.huds["pauseMenu"]['buttons']:
+			height = self.drawButton(button,'centered',top,passThrough,btns)
+			top += height*scale
+
+		passThrough['window'].blit(btns, (0,0))
+
+	def drawButton(self,button,rectLeft,rectTop,passThrough,btns):
+		scale = self.hudScale
+
+		color = button['color'] if 'color' in button else self.param['color']
+		img = self.font.render(button['text'], False, color)
+
+		rectHeight = img.get_height() + self.param['padding']['height']*2*scale
+		rectWidth = img.get_width() + self.param['padding']['width']*2*scale
+
+		imgLeft = int(passThrough['window'].get_width()/2 - img.get_width()/2) + scale
+		imgTop = int(rectTop + rectHeight/2  - img.get_height()/2) - scale
+
+		if rectLeft == 'centered':
+			rectLeft = int(passThrough['window'].get_width()/2 - rectWidth/2)
+		
+		isHover = Rect((rectLeft,rectTop),(int(rectWidth),int(rectHeight))).collidepoint(self.mousePos)
+		alpha = self.param['alpha']['hover'] if isHover else self.param['alpha']['normal']
+
+		rects, circles = gFunction.createRectWithRoundCorner(rectLeft,rectTop,rectWidth,rectHeight,self.param['radius'])
+		for rect in rects:
+			pygame.draw.rect(btns,(0,0,0,alpha),Rect(rect))
+		for circle in circles:
+			pygame.draw.circle(btns,(0,0,0,alpha),circle,self.param['radius'])
+		
+		btns.blit(img,(imgLeft, imgTop))
+
+		return int(rectHeight/2 + self.param['margin'])
 
 class Item():
 	def __init__(self,param):
@@ -385,6 +483,10 @@ class Engine(gregngine.Engine):
 
 		self.world = world
 		self.newPixelScale = self.param['newPixelScale']
+		
+		self.HUDMenuManager = HUDMenuManager(self.param['HudScale'])
+		self.states['play'] = ['main','inventory']
+		self.states['pause'] = ['pauseMenu']
 
 		self.collisionsDistance = 1.5
 		self.collisionsDistance *= self.newPixelScale
@@ -430,42 +532,45 @@ class Engine(gregngine.Engine):
 			self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
 
 	def main(self,inputEvent,inputPressed):
-		self.checkCollision()
-		self.playerInput(inputEvent,inputPressed)
+		if self.currentHUD in self.states['play']:
+			self.checkCollision()
+			self.playerInputMouvement(inputEvent,inputPressed)
 
-		for entity in self.entitiesManager.visibleEntities:
-			if entity.data['type'] == 'monster':
-				walls = entity.walls
-				adj = entity.x - self.player.x
-				opo = entity.y - self.player.y
-				hypo = math.sqrt(adj**2 + opo**2)
+			for entity in self.entitiesManager.visibleEntities:
+				if entity.data['type'] == 'monster':
+					walls = entity.walls
+					adj = entity.x - self.player.x
+					opo = entity.y - self.player.y
+					hypo = math.sqrt(adj**2 + opo**2)
 
-				if hypo < 0.7:
-					attackinfo = entity.attack()
-					if attackinfo is not None:
-						self.damagesInfos.append(attackinfo)
-				
-				if not entity.isAttacking:
-					coef = 1/hypo
-					x = -adj * coef
-					y = -opo * coef
-
-					entity.setOrientation(x,y)
+					if hypo < 0.7:
+						attackinfo = entity.attack()
+						if attackinfo is not None:
+							self.damagesInfos.append(attackinfo)
 					
-					if x > 0 and "Right" in walls:
-						x *= 0
-					if x < 0 and "Left" in walls:
-						x *= 0
-					if y > 0 and "Bottom" in walls:
-						y *= 0
-					if y < 0 and "Top" in walls:
-						y *= 0
+					if not entity.isAttacking:
+						coef = 1/hypo
+						x = -adj * coef
+						y = -opo * coef
 
-					entity.setVelocity(x,y)
+						entity.setOrientation(x,y)
+						
+						if x > 0 and "Right" in walls:
+							x *= 0
+						if x < 0 and "Left" in walls:
+							x *= 0
+						if y > 0 and "Bottom" in walls:
+							y *= 0
+						if y < 0 and "Top" in walls:
+							y *= 0
+
+						entity.setVelocity(x,y)
+			
+			self.applyDamages()
 		
-		self.applyDamages()
-		
-	def playerInput(self,inputEvent,inputPressed):
+		self.playerInputMenus(inputEvent,inputPressed)
+
+	def playerInputMouvement(self,inputEvent,inputPressed):
 		playerSpeedY,playerSpeedX = 0, 0
 		playerMouvY,playerMouvX = 0, 0
 
@@ -519,17 +624,22 @@ class Engine(gregngine.Engine):
 						print("Hit " + entity.name)
 						entity.stats['health'] -= attackinfo['damage']"""
 
-		# inventory code
+	def playerInputMenus(self,inputEvent,inputPressed):
+		
 		inventoryPressed = False
+		pausePressed = False
 
 		self.mousePos = None
 		for event in inputEvent:
 			if event.type == pygame.KEYDOWN:
 				if event.key==actions["inventory"]:
 					inventoryPressed = True
+				if event.key==actions["pause"]:
+					pausePressed = True
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				self.mousePos = pygame.mouse.get_pos()
-			
+
+		# inventory code
 		if inventoryPressed:
 			#self.player.inventory()
 			if not self.player.inventory.isOpen:
@@ -543,6 +653,16 @@ class Engine(gregngine.Engine):
 			self.currentHUD = 'inventory'
 		if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
 			self.currentHUD = 'main'
+
+		# pause menu code
+		if pausePressed:
+			#self.player.inventory()
+			if not self.HUDMenuManager.pauseMenuIsOpen:
+				self.HUDMenuManager.pauseMenuIsOpen = True
+				self.currentHUD = 'pauseMenu'
+			else:
+				self.HUDMenuManager.pauseMenuIsOpen = False
+				self.currentHUD = 'main'
 
 	def applyDamages(self):
 		for entity in self.entitiesManager.visibleEntities:
