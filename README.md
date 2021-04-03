@@ -59,7 +59,7 @@ But final : avoir battu les 5 bosses du jeu
  - systeme sauvegarde
     - save entitées present au format json 
     - save player format json
-    - load -> utiliser c'est fichier de sauvegarde apres les fichiers d'init (present dans /./entities) pour overwrite les éléments sauvegardés
+    - load -> utiliser c'est fichier de sauvegarde apres les fichiers d'init (present dans ./entities) pour ensuite les overwrite avec les éléments sauvegardés
 
 ## Gregngine:
 Gregngine est le moteur de jeu réalisé pour créer des jeux en 2d et en vue de dessus.
