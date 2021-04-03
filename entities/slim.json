@@ -3,8 +3,8 @@
     "type": "monster",
     "stats": {
         "maxHealth": 100,
-        "atkPerSec": 1,
-        "atkDamage": 25,
+        "atkPerSec": 1.5,
+        "atkDamage": 10,
         "speed": 3,
         "drops":[
             {
@@ -43,6 +43,16 @@
     },
     "animation": {
         "time": 0.17,
-        "default state": 1
+        "default state": 1,
+        "attack": {
+            "stepTime": 0.05,
+            "steps":[
+                {"x" : 0, "y": 0, "rotation": 0},
+                {"x" : -10, "y": 0, "rotation": 0},
+                {"x" : 0, "y": 0, "rotation": 0},
+                {"x" : 10, "y": 0, "rotation": 0},
+                {"x" : 5, "y": 0, "rotation": 0}
+            ]
+        }
     }
 }

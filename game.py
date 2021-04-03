@@ -212,8 +212,7 @@ class Player(gregngine.Entity):
 		self.inventory = Inventory()
 		self.inventory.player = self
 
-		self.health = self.stats["maxHealth"]
-		self.energy = self.stats["maxEnergy"]
+		self.stats["energy"] = self.stats["maxEnergy"]
 
 		self.lastAttackTime = time.time()
 		self.isAttacking = False
@@ -225,15 +224,42 @@ class Player(gregngine.Entity):
 		self.inventory.drawHud(passThrough)
 
 		if passThrough['currentHUD'] == 'main':
-			scale = passThrough['HudScale']
+			healthCoords = {
+				'top': 8,
+				'left': 8,
+				'width': 100,
+				'height': 20,
+				'outline': 4
+			}
+			energyCoords = {
+				'top': 32,
+				'left': 8,
+				'width': 100,
+				'height': 20,
+				'outline': 4
+			}
 
-			x = ((self.energy * 100) / self.stats["maxEnergy"]) /100 if self.energy > 0 else 0
+			self.drawHudBar(self.stats["health"],self.stats['maxHealth'],(255,80,0),passThrough,healthCoords)
+			self.drawHudBar(self.stats["energy"],self.stats['maxEnergy'],(0,80,255),passThrough,energyCoords)
 
-			rect = gFunction.createRectOutlined(x, 8*scale, 8*scale, 100*scale, 20*scale, 4*scale)
-			pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+	def drawHudBar(self,value,max,color,passThrough,coords):
+		"""
+		coords = {
+			'top',
+			'left',
+			'width',
+			'height',
+			'outline'
+		}
+		"""
+		scale = passThrough['HudScale']
+		x = ((value * 100) / max) /100 if value > 0 else 0
 
-			if x > 0:
-				pygame.draw.rect(passThrough['window'],(0,80,255),rect[1])
+		rect = gFunction.createRectOutlined(x, coords['left']*scale, coords['top']*scale, coords['width']*scale, coords['height']*scale, coords['outline']*scale)
+		pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+
+		if x > 0:
+			pygame.draw.rect(passThrough['window'],color,rect[1])
 
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
@@ -263,10 +289,10 @@ class Player(gregngine.Entity):
 
 	def increaseEnergy(self,dtime):
 	
-		if self.energy < self.stats['maxEnergy']:
-			self.energy += 10*dtime*0.001
-			if self.stats['maxEnergy'] < self.energy:
-				self.energy = self.stats['maxEnergy']
+		if self.stats['energy'] < self.stats['maxEnergy']:
+			self.stats['energy'] += 10*dtime*0.001
+			if self.stats['maxEnergy'] < self.stats['energy']:
+				self.stats['energy'] = self.stats['maxEnergy']
 
 	def setCameraOffset(self,x,y):
 		self.camera.xOffset = -(x/2) + self.param['x']
@@ -310,7 +336,7 @@ class Player(gregngine.Entity):
 
 			self.isAttacking = True
 
-			return {'attackRect':attackRect,'damage':damage}
+			return {'entity':self,'attackRect':attackRect,'damage':damage}
 
 		else:
 			return None
@@ -353,13 +379,6 @@ class Player(gregngine.Entity):
 	def draw(self, xStart, yStart, passThrough):
 		super().draw(xStart, yStart, passThrough)
 
-		xToDraw = self.x - xStart -1
-		yToDraw = self.y - yStart -1
-
-		animationSurface = self.attackAnimation()
-		if animationSurface is not None:
-			passThrough['window'].blit(animationSurface,(xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
-
 class Engine(gregngine.Engine):
 	def __init__(self, param):
 		super().__init__(param)
@@ -370,6 +389,8 @@ class Engine(gregngine.Engine):
 		self.collisionsDistance = 1.5
 		self.collisionsDistance *= self.newPixelScale
 		self.collisions = {}
+
+		self.damagesInfos = []
 
 		self.rezizeSprites()
 
@@ -393,7 +414,7 @@ class Engine(gregngine.Engine):
 		self.entitiesManager.addEntity(sword)
 		self.entitiesManager.addEntity(mace)
 
-		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
+		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
 		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
 		"""self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
@@ -420,29 +441,29 @@ class Engine(gregngine.Engine):
 				hypo = math.sqrt(adj**2 + opo**2)
 
 				if hypo < 0.7:
-					entity.isAttacking = True
+					attackinfo = entity.attack()
+					if attackinfo is not None:
+						self.damagesInfos.append(attackinfo)
 				
-				if entity.isAttacking:
-					entity.attack()
-
-				else:
+				if not entity.isAttacking:
 					coef = 1/hypo
 					x = -adj * coef
 					y = -opo * coef
 
 					entity.setOrientation(x,y)
 					
-					if entity.isAttacking is False:
-						if x > 0 and "Right" in walls:
-							x *= 0
-						if x < 0 and "Left" in walls:
-							x *= 0
-						if y > 0 and "Bottom" in walls:
-							y *= 0
-						if y < 0 and "Top" in walls:
-							y *= 0
+					if x > 0 and "Right" in walls:
+						x *= 0
+					if x < 0 and "Left" in walls:
+						x *= 0
+					if y > 0 and "Bottom" in walls:
+						y *= 0
+					if y < 0 and "Top" in walls:
+						y *= 0
 
-						entity.setVelocity(x,y)
+					entity.setVelocity(x,y)
+		
+		self.applyDamages()
 		
 	def playerInput(self,inputEvent,inputPressed):
 		playerSpeedY,playerSpeedX = 0, 0
@@ -492,10 +513,11 @@ class Engine(gregngine.Engine):
 			attackinfo = self.player.attack()
 
 			if attackinfo is not None:
-				for entity in self.entitiesManager.visibleEntities:
+				self.damagesInfos.append(attackinfo)
+				"""for entity in self.entitiesManager.visibleEntities:
 					if entity.data['type'] == 'monster' and attackinfo['attackRect'].colliderect(entity.rect):
 						print("Hit " + entity.name)
-						entity.stats['health'] -= attackinfo['damage']
+						entity.stats['health'] -= attackinfo['damage']"""
 
 		# inventory code
 		inventoryPressed = False
@@ -521,6 +543,15 @@ class Engine(gregngine.Engine):
 			self.currentHUD = 'inventory'
 		if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
 			self.currentHUD = 'main'
+
+	def applyDamages(self):
+		for entity in self.entitiesManager.visibleEntities:
+			for damagedInfo in self.damagesInfos:
+				if entity.data['type'] in ['monster','player'] and entity != damagedInfo['entity'] and damagedInfo['attackRect'].colliderect(entity.rect):
+					print("Hit " + entity.name, entity.stats['health'])
+					entity.stats['health'] -= damagedInfo['damage']
+		
+		self.damagesInfos = []
 
 	def DrawWorld(self):
 		super().DrawWorld()

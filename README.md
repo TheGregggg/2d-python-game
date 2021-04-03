@@ -11,6 +11,7 @@ But final : avoir battu les 5 bosses du jeu
 
 ## Utilisation:
  - pygame installé 
+ - vous pouvez changer les parametres graphiques (scale multiplier, HUD scale multiplier) dans config.json
  - lancer game.py
  - Touches:
     - haut,bas,gauche,droite -> z,s,q,d
