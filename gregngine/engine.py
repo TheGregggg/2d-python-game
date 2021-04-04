@@ -125,8 +125,6 @@ class Entity(object):
 			"scaleMultiplier": 6,
 		}
 		"""
-		pygame.init()
-
 		self.param = param
 		self.name = param['name']
 
@@ -309,7 +307,8 @@ class EntitiesManager(object):
 				self.entities.remove(entity)
 
 class HUDMenuManager(object):
-	def __init__(self,hudScale):
+	def __init__(self,engine,hudScale):
+		self.engine = engine
 		self.hudScale = hudScale
 
 		self.huds = {}
@@ -339,6 +338,8 @@ class Engine(object):
 			"debug": False/True
 		}
 		"""
+		pygame.init()
+
 		self.param = param
 		self.debugMode = param["debug"]
 
@@ -359,7 +360,7 @@ class Engine(object):
 		self.entitiesManager = EntitiesManager()
 
 		self.currentHUD = 'main'
-		self.HUDMenuManager = HUDMenuManager(param['HudScale'])
+		self.HUDMenuManager = HUDMenuManager(self,param['HudScale'])
 
 		#self.loadSaves() load save done in game.py to ensure there is a save file
 		self.clock = pygame.time.Clock()
@@ -427,6 +428,9 @@ class Engine(object):
 	def engineLoop(self):
 		active = True
 		while active:
+
+			self.mousePosClick = None
+
 			inputEvent = pygame.event.get()
 			for event in inputEvent:
 				if event.type == QUIT:
@@ -434,6 +438,8 @@ class Engine(object):
 					quit()
 				if event.type == VIDEORESIZE:
 					self.rezizeWindow(event.h,event.w)
+				if event.type == pygame.MOUSEBUTTONDOWN:
+					self.mousePosClick = pygame.mouse.get_pos()
 			
 			self.main(inputEvent, pygame.key.get_pressed())
 
@@ -480,7 +486,7 @@ class Engine(object):
 			"window": self.window,
 			"HudScale": self.param['HudScale'],
 			"currentHUD": self.currentHUD,
-			"mousePos": self.mousePos,
+			"mousePosClick": self.mousePosClick,
 			"visibleEntities": visibleEnt
 		}
 

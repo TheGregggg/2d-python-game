@@ -28,8 +28,8 @@ weaponTypeAPSMultiplier = {
 	'mace': 2
 }
 class HUDMenuManager(gregngine.HUDMenuManager):
-	def __init__(self,hudScale):
-		super().__init__(hudScale)
+	def __init__(self,engine,hudScale):
+		super().__init__(engine,hudScale)
 
 		self.pauseMenuIsOpen = False
 
@@ -48,22 +48,29 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			'color': (255,255,255,255)
 		}
 
+		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', self.param['fontSize']*self.hudScale)
+
 		self.huds = {
 			"startMenu": self.startMenu,
 			"pauseMenu": {
 				'fonction': self.pauseMenu,
+				'isOpen': False,
 				'buttons': [
 					{
 						'text': 'retour',
+						'fonction': self.btnResume
 					},
 					{
 						'text': 'sauvegarder',
+						'fonction': self.btnSave
 					},
 					{
 						'text': 'options',
+						'fonction': self.btnOptions
 					},
 					{
 						'text': 'quitter',
+						'fonction': self.btnQuit
 					}
 				]
 			}
@@ -81,9 +88,8 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 
 		scale = self.hudScale
 		
-		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', self.param['fontSize']*scale)
-
 		imgWidth, imgHeight = self.font.size('h')
+		imgHeight += self.param['padding']['height']*2*scale
 		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
 		top = int(screenHeight/2 - topHeight/2)
 
@@ -111,8 +117,10 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 
 		if rectLeft == 'centered':
 			rectLeft = int(passThrough['window'].get_width()/2 - rectWidth/2)
+
+		collisionRect = Rect((rectLeft,rectTop),(int(rectWidth),int(rectHeight)))
 		
-		isHover = Rect((rectLeft,rectTop),(int(rectWidth),int(rectHeight))).collidepoint(self.mousePos)
+		isHover = collisionRect.collidepoint(self.mousePos)
 		alpha = self.param['alpha']['hover'] if isHover else self.param['alpha']['normal']
 
 		rects, circles = gFunction.createRectWithRoundCorner(rectLeft,rectTop,rectWidth,rectHeight,self.param['radius'])
@@ -123,7 +131,24 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		
 		btns.blit(img,(imgLeft, imgTop))
 
+		# handle click requests
+		if passThrough['mousePosClick'] is not None:
+			if collisionRect.collidepoint(passThrough['mousePosClick']):
+				button['fonction']()
 		return int(rectHeight/2 + self.param['margin'])
+	
+	def btnResume(self):
+		self.huds['pauseMenu']['isOpen'] = False
+		self.engine.currentHUD = 'main'
+
+	def btnSave(self):
+		print('Save')
+
+	def btnOptions(self):
+		print('Options')
+
+	def btnQuit(self):
+		print('Quit')
 
 class Item():
 	def __init__(self,param):
@@ -225,7 +250,7 @@ class Inventory():
 			if self.hands is not None:
 				self.hands.drawSprite(scale,coords, passThrough)
 				#passThrough['window'].blit(sprite, (width - coords['width']*scale - coords['right']*scale -8, -26+coords['top']*scale))
-			if passThrough['mousePos'] is not None and Rect( (coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePos']):
+			if passThrough['mousePosClick'] is not None and Rect( (coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
 					self.isOpen = True
 		
 		if passThrough['currentHUD'] == 'inventory':
@@ -271,8 +296,8 @@ class Inventory():
 					coords['left'],coords['top'] = caseInfo['place']
 					caseInfo['x_value'].drawSprite(scale,coords,passThrough)
 
-				if passThrough['mousePos'] is not None:
-					if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePos']):
+				if passThrough['mousePosClick'] is not None:
+					if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
 						if 'y' in caseInfo:
 							temp = self.hands
 							self.hands = self.slots[caseInfo['y']][caseInfo['x']]
@@ -300,7 +325,6 @@ class Inventory():
 class Player(gregngine.Entity):
 	def __init__(self, param):
 		super().__init__(param)
-
 		self.parent = None
 
 		self.speed = self.stats["normalSpeed"]
@@ -362,12 +386,12 @@ class Player(gregngine.Entity):
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
 
-		if self.running and self.energy > 0 and (x != 0 or y !=0):
+		if self.running and self.stats['energy']  > 0 and (x != 0 or y !=0):
 			x,y = x*self.stats["maxSpeed"],y*self.stats["maxSpeed"]
-			if self.energy < 1:
-				self.energy -= 10
+			if self.stats['energy']  < 1:
+				self.stats['energy'] -= 10
 			else:
-				self.energy -= 30*dTime*0.001
+				self.stats['energy'] -= 30*dTime*0.001
 		else:
 			x,y = x*self.stats["normalSpeed"],y*self.stats["normalSpeed"]
 
@@ -386,7 +410,6 @@ class Player(gregngine.Entity):
 		self.setVelocity(0,0)
 
 	def increaseEnergy(self,dtime):
-	
 		if self.stats['energy'] < self.stats['maxEnergy']:
 			self.stats['energy'] += 10*dtime*0.001
 			if self.stats['maxEnergy'] < self.stats['energy']:
@@ -484,7 +507,7 @@ class Engine(gregngine.Engine):
 		self.world = world
 		self.newPixelScale = self.param['newPixelScale']
 		
-		self.HUDMenuManager = HUDMenuManager(self.param['HudScale'])
+		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
 		self.states['play'] = ['main','inventory']
 		self.states['pause'] = ['pauseMenu']
 
@@ -578,7 +601,7 @@ class Engine(gregngine.Engine):
 
 		if inputPressed[actions["sprint"]]:
 			self.player.running = True
-			if self.player.energy > 0:
+			if self.player.stats['energy'] > 0:
 				self.player.animator.animationSettings['time'] = self.player.animator.animationSettings['maxSpeed']
 			else:
 				self.player.animator.animationSettings['time'] = self.player.animator.animationSettings['normalSpeed']
@@ -629,15 +652,12 @@ class Engine(gregngine.Engine):
 		inventoryPressed = False
 		pausePressed = False
 
-		self.mousePos = None
 		for event in inputEvent:
 			if event.type == pygame.KEYDOWN:
 				if event.key==actions["inventory"]:
 					inventoryPressed = True
 				if event.key==actions["pause"]:
 					pausePressed = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				self.mousePos = pygame.mouse.get_pos()
 
 		# inventory code
 		if inventoryPressed:
@@ -657,11 +677,11 @@ class Engine(gregngine.Engine):
 		# pause menu code
 		if pausePressed:
 			#self.player.inventory()
-			if not self.HUDMenuManager.pauseMenuIsOpen:
-				self.HUDMenuManager.pauseMenuIsOpen = True
+			if not self.HUDMenuManager.huds['pauseMenu']['isOpen']:
+				self.HUDMenuManager.huds['pauseMenu']['isOpen'] = True
 				self.currentHUD = 'pauseMenu'
 			else:
-				self.HUDMenuManager.pauseMenuIsOpen = False
+				self.HUDMenuManager.huds['pauseMenu']['isOpen'] = False
 				self.currentHUD = 'main'
 
 	def applyDamages(self):
