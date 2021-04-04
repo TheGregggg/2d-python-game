@@ -6,7 +6,7 @@
     "weaponType": "sword",
     "tilemap": {
         "name":"tilemap",
-        "src":"sprites/weapon.png",
+        "src":"weapon.png",
         "totalColumns": 4,
         "totalRow": 6,
         "colStart": 2,

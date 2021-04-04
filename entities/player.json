@@ -22,7 +22,7 @@
     },
     "tilemap": {
         "name":"tilemap",
-        "src":"sprites/characters.png",
+        "src":"characters.png",
         "totalRow": 8,
         "totalColumns": 12,
         "rows": 4,

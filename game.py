@@ -154,7 +154,7 @@ class Item():
 		self.name = self.data['displayedName']
 		
 		tilemap = self.data['tilemap']
-		self.tilemap = pygame.image.load(self.data["tilemap"]["src"])
+		self.tilemap = pygame.image.load('assets/sprites/' + self.data["tilemap"]["src"])
 		size = self.tilemap.get_size()
 
 		self.tilemapSettings = {

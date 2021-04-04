@@ -43,7 +43,7 @@ class Camera(object):
 
 class Animator(object):
 	def __init__(self,data,param):
-		self.tilemap = pygame.image.load(data["tilemap"]["src"])
+		self.tilemap = pygame.image.load('assets/sprites/' + data["tilemap"]["src"])
 		size = self.tilemap.get_size()
 		tilemap = data["tilemap"]
 		self.tilemapSettings = {

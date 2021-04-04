@@ -2,11 +2,11 @@ import pygame
 import pickle5.pickle as pickle
 
 sprites = {
-    "player": pygame.image.load("sprites/player.png"),
-    "tilemap": pygame.image.load("sprites/characters.png"),
-    "g": pygame.image.load("sprites/ground.png"),
-    "s": pygame.image.load("sprites/sand.png"),
-    "r": pygame.image.load("sprites/rock.png")
+    "player": pygame.image.load("assets/sprites/player.png"),
+    "tilemap": pygame.image.load("assets/sprites/characters.png"),
+    "g": pygame.image.load("assets/sprites/ground.png"),
+    "s": pygame.image.load("assets/sprites/sand.png"),
+    "r": pygame.image.load("assets/sprites/rock.png")
 }
 
 with open('saves/world.save', 'rb') as f:
