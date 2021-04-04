@@ -364,6 +364,7 @@ class Engine(object):
 
 		#self.loadSaves() load save done in game.py to ensure there is a save file
 		self.clock = pygame.time.Clock()
+		self.clockTick = 120
 
 	def calculatesTilesOnAxis(self):  
 		self.tilesOnX = int(self.param['width']/self.param['newPixelScale'])+1
@@ -450,7 +451,7 @@ class Engine(object):
 			self.DrawHUDs()
 
 			pygame.display.update()
-			self.clock.tick(120)
+			self.clock.tick(self.clockTick)
 
 	def main(self,inputEvent,inputPressed):
 		pass
