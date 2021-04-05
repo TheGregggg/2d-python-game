@@ -46,7 +46,10 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', self.param['fontSize']*self.hudScale)
 
 		self.huds = {
-			"startMenu": self.startMenu,
+			"menu": {
+				'fonction': self.menu,
+				'isOpen': False
+			},
 			"pauseMenu": {
 				'fonction': self.pauseMenu,
 				'isOpen': False,
@@ -71,8 +74,8 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			}
 		}
 	
-	def startMenu(self, passThrough):
-		pass
+	def menu(self, passThrough):
+		print("wsh")
 	
 	def pauseMenu(self, passThrough):
 		screenWidth, screenHeight = passThrough['window'].get_size()
@@ -251,11 +254,13 @@ class Engine(gregngine.Engine):
 
 	def playerInputMenus(self,inputEvent,inputPressed):
 		
-		inventoryPressed = False
+		menuPressed = False
 		pausePressed = False
 
 		for event in inputEvent:
 			if event.type == pygame.KEYDOWN:
+				if event.key==actions["menu"]:
+					menuPressed = True
 				if event.key==actions["pause"]:
 					pausePressed = True
 
@@ -268,11 +273,15 @@ class Engine(gregngine.Engine):
 			else:
 				self.player.inventory.isOpen = False
 				self.currentHUD = 'main'"""
-
-		"""if self.player.inventory.isOpen and self.currentHUD != 'inventory':
-			self.currentHUD = 'inventory'
-		if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
-			self.currentHUD = 'main'"""
+		
+		if menuPressed:
+			#self.player.inventory()
+			if not self.HUDMenuManager.huds['menu']['isOpen']:
+				self.HUDMenuManager.huds['menu']['isOpen'] = True
+				self.currentHUD = 'menu'
+			else:
+				self.HUDMenuManager.huds['menu']['isOpen'] = False
+				self.currentHUD = 'main'
 
 		# pause menu code
 		if pausePressed:
@@ -315,11 +324,17 @@ class Engine(gregngine.Engine):
 
 				else:
 					self.window.blits(((sprite, coord),(self.world.sprites[wall], coord)))
-
 		
 if __name__ == "__main__":
-	with open("config.json","r") as file:
-		engineParameters = json.load(file)
+	engineParameters = {
+		"height" : 800,
+		"width" : 1200,
+		"saves": "saves/saves",
+		"pixelSize": 16,
+		"scaleMultiplier": 4,
+		"HudScale": 2,
+		"debug": False
+	}
 
 	engine = Engine(engineParameters)
 	engine.engineLoop()
