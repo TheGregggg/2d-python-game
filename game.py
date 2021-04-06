@@ -505,6 +505,7 @@ class Engine(gregngine.Engine):
 		super().__init__(param)
 
 		self.world = world
+		self.world.loadSprites('overworld',self.param['pixelSize'])
 		self.newPixelScale = self.param['newPixelScale']
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
@@ -550,8 +551,7 @@ class Engine(gregngine.Engine):
 		self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat3","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':8,'y':15}))"""
 		
 	def rezizeSprites(self):
-		elems = ["g","s","r"]
-		for sprite in elems:
+		for sprite in self.world.sprites:
 			self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
 
 	def main(self,inputEvent,inputPressed):

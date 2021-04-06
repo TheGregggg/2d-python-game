@@ -421,6 +421,8 @@ class Engine(object):
 			"xEnd":xEnd,
 			"offx":offx,
 			"offy":offy,
+			"widthOffset": widthOffset,
+			"heightOffset": heightOffset
 		}
 		#print(dic)
 
