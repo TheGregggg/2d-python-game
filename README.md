@@ -38,6 +38,8 @@ But final : avoir battu les 5 bosses du jeu
  - animation attaque du monstre
  - HUD d'inventaire
  - HUD pv des monstres au dessus d'eux
+ - menu in-game (touche esc)
+ - editeur de carte complet
 
 ## Dossiers:
  - gregngine : dossier moteur de jeu perso
@@ -50,7 +52,6 @@ But final : avoir battu les 5 bosses du jeu
 ## Todo:
  - refactor attaque animation pour entitées et player
  - créer menu démarrer 
- - créer menu in-game (touche esc)
  - créer  items utilisable (potion)
  - gestion argent perso
  - gestion experience + montée de niveau perso

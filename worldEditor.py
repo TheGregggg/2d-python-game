@@ -8,6 +8,7 @@ import time
 
 import shelve
 import json
+import copy
 
 import pygame 
 from pygame.locals import *
@@ -20,7 +21,8 @@ actions = {
 	"sprint": pygame.K_LSHIFT,
 	"switchLayer": pygame.K_SPACE,
 	"menu": pygame.K_e,
-	"pause": pygame.K_ESCAPE
+	"pause": pygame.K_ESCAPE,
+	"rewind": pygame.K_a,
 }
 
 class HUDMenuManager(gregngine.HUDMenuManager):
@@ -110,7 +112,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 					y = y//(self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize']*self.hudScale)
 					
 					#print(x,y,(y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x)
-					sprite = (y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x
+					sprite = int((y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x)
 					size = {'y':len(self.engine.spriteToPlace),'x':len(self.engine.spriteToPlace[0])}
 
 					self.engine.setSprite(sprite,size)
@@ -217,7 +219,8 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		print('Options')
 
 	def btnQuit(self):
-		print('Quit')
+		pygame.quit()
+		quit()
 
 class Player(gregngine.Entity):
 	def __init__(self, param):
@@ -259,7 +262,11 @@ class Engine(gregngine.Engine):
 		self.world = world
 		self.world.loadSprites('overworld',self.param['pixelSize'])
 
-		self.spriteToPlace = [[0,0],[0,0]]
+		self.lastState = {
+			'world': copy.deepcopy(self.world.world),
+			'walls': copy.deepcopy(self.world.walls)}
+
+		self.spriteToPlace = [[0]]
 		self.layer = 'ground'
 
 		self.newPixelScale = self.param['newPixelScale']
@@ -298,6 +305,9 @@ class Engine(gregngine.Engine):
 		if self.currentHUD in self.states['play']:
 			self.playerInputMouvement(inputEvent,inputPressed)
 			self.placeSprite()
+			if inputPressed[actions["rewind"]]:
+				self.world.world = copy.deepcopy(self.lastState['world'])
+				self.world.walls = copy.deepcopy(self.lastState['walls'])
 
 		self.playerInputMenus(inputEvent,inputPressed)
 
@@ -342,6 +352,8 @@ class Engine(gregngine.Engine):
 						self.layer = 'ground'
 			if event.type == MOUSEWHEEL:
 				size = len(self.spriteToPlace)
+				if size%2 == 0:
+					size -=1
 				if event.y < 0:
 					if size >= 3:
 						size -= 2
@@ -380,7 +392,9 @@ class Engine(gregngine.Engine):
 			self.spriteToPlace = tile
 
 	def placeSprite(self):
-		if pygame.mouse.get_pressed()[0]:
+		if pygame.mouse.get_pressed()[0] or pygame.mouse.get_pressed()[2]:
+			self.lastState['world'] = copy.deepcopy(self.world.world)
+			self.lastState['walls'] = copy.deepcopy(self.world.walls)
 			self.getTilesOnScreen()
 			coords = self.ScreenToWorldCoords
 			size = self.newPixelScale
@@ -405,7 +419,10 @@ class Engine(gregngine.Engine):
 			for i_index,i in enumerate(range(y_start,y_end)):  # y
 				for j_index,j in enumerate(range(x_start,x_end)): # x
 					try:
-						world[i][j] = self.spriteToPlace[i_index][j_index]
+						if pygame.mouse.get_pressed()[0]:
+							world[i][j] = self.spriteToPlace[i_index][j_index]
+						elif pygame.mouse.get_pressed()[2] and self.layer != 'ground':
+							world[i][j] = ' '
 					except Exception as e:
 						print(e)
 
