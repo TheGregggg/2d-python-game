@@ -27,6 +27,7 @@ weaponTypeAPSMultiplier = {
 	'sword': 1,
 	'mace': 2
 }
+
 class HUDMenuManager(gregngine.HUDMenuManager):
 	def __init__(self,engine,hudScale):
 		super().__init__(engine,hudScale)

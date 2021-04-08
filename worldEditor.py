@@ -13,10 +13,10 @@ import pygame
 from pygame.locals import *
 
 actions = {
-	"up":     pygame.K_w,
+	"up":     pygame.K_z,
 	"down":   pygame.K_s,
 	"right":  pygame.K_d,
-	"left":   pygame.K_a,
+	"left":   pygame.K_q,
 	"sprint": pygame.K_LSHIFT,
 	"switchLayer": pygame.K_SPACE,
 	"menu": pygame.K_e,
@@ -49,7 +49,17 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		self.huds = {
 			"menu": {
 				'fonction': self.menu,
-				'isOpen': False
+				'isOpen': False,
+				'rightClick': {
+					"start":{
+						"x": None,
+						"y": None,
+					},
+					"end":{
+						"x": None,
+						"y": None,
+					}
+				}
 			},
 			"pauseMenu": {
 				'fonction': self.pauseMenu,
@@ -92,17 +102,46 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 
 		if passThrough['mousePosClick'] is not None:
 			if place[0] < passThrough['mousePosClick'][0] < place[0]+size[0] and place[1] < passThrough['mousePosClick'][1] < place[1]+size[1]:
-				x = passThrough['mousePosClick'][0] - place[0] 
-				x = x//(self.engine.world.tilemaps['overworld'].get_width()/self.engine.param['pixelSize']*self.hudScale)
+				if passThrough['mouseButtonClick'][0]:
+					x = passThrough['mousePosClick'][0] - place[0] 
+					x = x//(self.engine.world.tilemaps['overworld'].get_width()/self.engine.param['pixelSize']*self.hudScale)
 
-				y =passThrough['mousePosClick'][1] - place[1] 
-				y = y//(self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize']*self.hudScale)
+					y = passThrough['mousePosClick'][1] - place[1] 
+					y = y//(self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize']*self.hudScale)
+					
+					#print(x,y,(y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x)
+					sprite = (y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x
+					size = {'y':len(self.engine.spriteToPlace),'x':len(self.engine.spriteToPlace[0])}
+
+					self.engine.setSprite(sprite,size)
+					self.closeMenu()
+
+				elif passThrough['mouseButtonClick'][2]:
+					x = passThrough['mousePosClick'][0] - place[0] 
+					x = int(x//(self.engine.world.tilemaps['overworld'].get_width()/self.engine.param['pixelSize']*self.hudScale))
+					y = passThrough['mousePosClick'][1] - place[1] 
+					y = int(y//(self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize']*self.hudScale))
+
+					rightClick = self.huds['menu']['rightClick']
+
+					if rightClick["start"]["x"] is None: 		# if it's first right click
+						rightClick["start"] = {'x':x,'y':y}
+					else:
+						rightClick["end"] = {'x':x,'y':y}
+					
+					
+					if rightClick["end"]["x"] is not None:  # if both click as been register
+						sprites = []
+						for i in range(rightClick["start"]["y"],rightClick["end"]["y"]+1):
+							a = []
+							for j in range(rightClick["start"]["x"],rightClick["end"]["x"]+1):
+								a.append(int((i*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+j))
+
+							sprites.append(a)
+
+						self.engine.setSprite(sprites,{'x':len(sprites[0]),'y':len(sprites)})
+						self.closeMenu()
 				
-				#print(x,y,(y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x)
-				self.engine.spriteToPlace = (y*self.engine.world.tilemaps['overworld'].get_height()/self.engine.param['pixelSize'])+x
-				self.huds['menu']['isOpen'] = False
-				self.engine.currentHUD = 'main'
-	
 	def pauseMenu(self, passThrough):
 		screenWidth, screenHeight = passThrough['window'].get_size()
 
@@ -161,6 +200,11 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 				button['fonction']()
 		return int(rectHeight/2 + self.param['margin'])
 	
+	def closeMenu(self):
+		self.huds['menu']['isOpen'] = False
+		self.huds['menu']['rightClick'] = {"start":{"x": None,"y": None,},"end":{"x": None,"y": None,}}
+		self.engine.currentHUD = 'main'
+
 	def btnResume(self):
 		self.huds['pauseMenu']['isOpen'] = False
 		self.engine.currentHUD = 'main'
@@ -215,7 +259,7 @@ class Engine(gregngine.Engine):
 		self.world = world
 		self.world.loadSprites('overworld',self.param['pixelSize'])
 
-		self.spriteToPlace = 0
+		self.spriteToPlace = [[0,0],[0,0]]
 		self.layer = 'ground'
 
 		self.newPixelScale = self.param['newPixelScale']
@@ -226,7 +270,7 @@ class Engine(gregngine.Engine):
 
 		self.rezizeSprites()
 
-		pygame.key.set_repeat(1,20)
+		#pygame.key.set_repeat(1,20)
 
 		playerParam = {
 			"name" : 'player',
@@ -296,6 +340,14 @@ class Engine(gregngine.Engine):
 						self.layer = 'walls'
 					else:
 						self.layer = 'ground'
+			if event.type == MOUSEWHEEL:
+				size = len(self.spriteToPlace)
+				if event.y < 0:
+					if size >= 3:
+						size -= 2
+				else:
+					size += 2
+				self.setSprite(self.spriteToPlace[0][0],{'x':size,'y':size})
 
 		if menuPressed:
 			#self.player.inventory()
@@ -316,6 +368,17 @@ class Engine(gregngine.Engine):
 				self.HUDMenuManager.huds['pauseMenu']['isOpen'] = False
 				self.currentHUD = 'main'
 
+	def setSprite(self,tile,size):
+		if type(tile) is int:
+			self.spriteToPlace = []
+			for i in range(size['y']):
+				a = []
+				for j in range(size['x']):
+					a.append(tile)
+				self.spriteToPlace.append(a)
+		elif type(tile) is list:
+			self.spriteToPlace = tile
+
 	def placeSprite(self):
 		if pygame.mouse.get_pressed()[0]:
 			self.getTilesOnScreen()
@@ -324,11 +387,27 @@ class Engine(gregngine.Engine):
 			x, y = pygame.mouse.get_pos()
 			x = int((x + ((coords['xStart']+ coords['offx']) * size))// size)
 			y = int((y + ((coords['yStart']+ coords['offy']) * size))// size)
+
+			x_start = x - math.floor(len(self.spriteToPlace)/2)
+			x_end = x + math.floor(len(self.spriteToPlace)/2)
+			if len(self.spriteToPlace) % 2 != 0:
+				x_end += 1
 			
+			y_start = y - math.floor(len(self.spriteToPlace[0])/2)
+			y_end = y + math.floor(len(self.spriteToPlace[0])/2)
+			if len(self.spriteToPlace[0]) % 2 != 0:
+				y_end += 1
+
+			world = self.world.walls
 			if self.layer == 'ground':
-				world.world[y][x] = self.spriteToPlace
-			else:
-				world.walls[y][x] = self.spriteToPlace
+				world = self.world.world
+
+			for i_index,i in enumerate(range(y_start,y_end)):  # y
+				for j_index,j in enumerate(range(x_start,x_end)): # x
+					try:
+						world[i][j] = self.spriteToPlace[i_index][j_index]
+					except Exception as e:
+						print(e)
 
 	def drawCurrentSprite(self):
 		self.getTilesOnScreen()
@@ -366,14 +445,15 @@ class Engine(gregngine.Engine):
 					self.window.blits(((sprite, coord),(self.world.sprites[wall], coord)))
 		
 		currentSpriteToDrawCoord = self.drawCurrentSprite()
-		self.window.blit(self.world.sprites[self.spriteToPlace],currentSpriteToDrawCoord)
+		self.window.blit(self.world.sprites[self.spriteToPlace[0][0]],currentSpriteToDrawCoord)
 		
 		
 		if self.layer == 'ground':
 			color = (0,80,255)
 		else:
 			color = (255,80,0)
-		pygame.draw.rect(self.window,color,Rect(10*self.param['HudScale'],10*self.param['HudScale'],40*self.param['HudScale'],40*self.param['HudScale']))
+		size = len(self.spriteToPlace)
+		pygame.draw.rect(self.window,color,Rect(10*self.param['HudScale'],10*self.param['HudScale'],size*5*self.param['HudScale'],size*5*self.param['HudScale']))
 
 if __name__ == "__main__":
 	engineParameters = {

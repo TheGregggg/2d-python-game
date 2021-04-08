@@ -433,6 +433,7 @@ class Engine(object):
 		while active:
 
 			self.mousePosClick = None
+			self.mouseButtonClick = None
 
 			inputEvent = pygame.event.get()
 			for event in inputEvent:
@@ -443,6 +444,7 @@ class Engine(object):
 					self.rezizeWindow(event.h,event.w)
 				if event.type == pygame.MOUSEBUTTONDOWN:
 					self.mousePosClick = pygame.mouse.get_pos()
+					self.mouseButtonClick = pygame.mouse.get_pressed()
 			
 			self.main(inputEvent, pygame.key.get_pressed())
 
@@ -490,6 +492,7 @@ class Engine(object):
 			"HudScale": self.param['HudScale'],
 			"currentHUD": self.currentHUD,
 			"mousePosClick": self.mousePosClick,
+			"mouseButtonClick": self.mouseButtonClick,
 			"visibleEntities": visibleEnt
 		}
 
