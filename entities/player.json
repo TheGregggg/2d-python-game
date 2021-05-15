@@ -14,6 +14,12 @@
         "money": 0,
         "points": 0
     },
+    "baseStats": {
+        "maxHealth": 100,
+        "maxEnergy": 100,
+        "atkPerSec": 0.3,
+        "atkBaseDamage": 10
+    },
     "collider":{
         "size": {
             "height": 0.6,
@@ -66,7 +72,7 @@
                 "name": "attack",
                 "displayName": "Attack",
                 "statToModify": "atkBaseDamage",
-                "steps": 0,
+                "steps": 15,
                 "maxSteps": 30,
                 "statPerStep": {
                     "type": "int",

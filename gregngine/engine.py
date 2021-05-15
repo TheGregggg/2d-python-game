@@ -379,7 +379,7 @@ class Engine(object):
 		self.tilesOnY = int(self.param['height']/self.param['newPixelScale'])+1
 	
 	def loadSaves(self):
-		with shelve.open(self.savePath) as data:
+		with shelve.open(self.savePath + "/saves") as data:
 			if 'miscs' in data:
 				if 'windowsHeight' in data['miscs'] and 'windowsWidth' in data['miscs']:
 					self.rezizeWindow(data['miscs']['windowsHeight'],data['miscs']['windowsWidth'],False)
@@ -394,7 +394,7 @@ class Engine(object):
 		self.player.setCameraOffset(self.tilesOnX-1,self.tilesOnY-1)
 
 		if saveData:
-			with shelve.open(self.savePath) as data:
+			with shelve.open(self.savePath + "/saves") as data:
 				dictio = data['miscs']
 				dictio['windowsHeight'] = h
 				dictio['windowsWidth'] = w

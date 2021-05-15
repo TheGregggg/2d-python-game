@@ -6,9 +6,11 @@ import world
 import math
 import random
 import time
+import os
 
 import shelve
 import json
+import pickle5.pickle as pickle
 
 import pygame 
 from pygame.locals import *
@@ -145,6 +147,19 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		self.engine.currentHUD = 'main'
 
 	def btnSave(self):
+		with open(self.engine.savePath + '/data.save', 'wb') as f:
+			data = {}
+			#data['entityManager'] = self.engine.entitiesManager
+			data['playerPos'] = (self.engine.player.x,self.engine.player.y)
+			data['playerOrientation'] = self.engine.player.animator.lastAnimation
+			"""data['playerInv'] = {}
+			data['playerInv']['hands'] = self.engine.player.inventory.hands.data['name']
+			data['playerInv']['handsStack'] = self.engine.player.inventory.handsStack
+			data['playerInv']['hands'] = self.engine.player.inventory.hands.data['name']
+			data['playerInv']['handsStack'] = self.engine.player.inventory.handsStack"""
+			data['playerData'] = self.engine.player.data
+			pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
 		print('Save')
 
 	def btnOptions(self):
@@ -204,7 +219,8 @@ class Item():
 		tilemap = self.data['tilemap']
 		itemScale = (int(coords['width']*scale*tilemap['scaling']/tilemap['ratio']),int(coords['height']*scale*tilemap['scaling']))
 		sprite = pygame.transform.scale(self.sprite.convert_alpha(),itemScale)
-		sprite = pygame.transform.rotate(sprite,-45)
+		if self.data['itemType'] == 'weapon':
+			sprite = pygame.transform.rotate(sprite,-45)
 
 		passThrough['window'].blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
 
@@ -226,10 +242,14 @@ class Item():
 
 class Inventory():
 	def __init__(self,player):
-		self.slots = [[None,None,None,None],[None,None,None,None]]
+		self.slots  = [[None,None,None,None],[None,None,None,None]]
+		self.stacks = [[   0,   0,   0,   0],[   0,   0,   0,   0]]
 		self.hands = None
+		self.handsStack = 0
 		self.isOpen = False
 		self.player = player
+
+		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 10*self.player.engine.param['HudScale'])
 	
 	def drawHud(self,passThrough):
 		scale = passThrough['HudScale']
@@ -260,8 +280,14 @@ class Inventory():
 			if self.hands is not None:
 				self.hands.drawSprite(scale,coords, passThrough)
 				#passThrough['window'].blit(sprite, (width - coords['width']*scale - coords['right']*scale -8, -26+coords['top']*scale))
-			if passThrough['mousePosClick'] is not None and Rect( (coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
-					self.isOpen = True
+			
+			if self.handsStack > 1:
+				img = self.font.render(str(self.handsStack), False, (255, 255, 255))
+				imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
+				passThrough['window'].blit(img,(imgLeft, imgTop))
+
+			if passThrough['mousePosClick'] is not None and Rect((coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
+				self.isOpen = True
 		
 		if passThrough['currentHUD'] == 'inventory':
 			stepHeight = coords['height'] + coords['inventory-margin']*2
@@ -305,28 +331,64 @@ class Inventory():
 				if caseInfo['x_value'] is not None:
 					coords['left'],coords['top'] = caseInfo['place']
 					caseInfo['x_value'].drawSprite(scale,coords,passThrough)
+					img = self.font.render(caseInfo['x_value'].data['displayedName'], False, (255, 255, 255))
+					imgLeft, imgTop = coords['left'] + (case.get_width() - img.get_width())/2, coords['top'] + case.get_height() - scale
+					passThrough['window'].blit(img,(imgLeft, imgTop))
+
+					if 'y' in caseInfo:
+						if self.stacks[caseInfo['y']][caseInfo['x']] > 1:
+							img = self.font.render(str(self.stacks[caseInfo['y']][caseInfo['x']]), False, (255, 255, 255))
+							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
+							passThrough['window'].blit(img,(imgLeft, imgTop))
+					elif caseInfo['x_value'] == self.hands:
+						if self.handsStack > 1:
+							img = self.font.render(str(self.handsStack), False, (255, 255, 255))
+							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
+							passThrough['window'].blit(img,(imgLeft, imgTop))
 
 				if passThrough['mousePosClick'] is not None:
 					if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
 						if 'y' in caseInfo:
 							temp = self.hands
+							stackTemp = self.handsStack
+
 							self.hands = self.slots[caseInfo['y']][caseInfo['x']]
 							self.slots[caseInfo['y']][caseInfo['x']] = temp
+
+							self.handsStack = self.stacks[caseInfo['y']][caseInfo['x']]
+							self.stacks[caseInfo['y']][caseInfo['x']] = stackTemp
+
 						elif caseInfo['ground']:
 							freeCases = []
+							sameCases = []
 							if self.hands is None:
 								freeCases.append('hands')
+							elif self.hands.data['name'] == caseInfo['x_value'].data['name'] and self.hands.data['stats']['stackable'] and self.stacks[y][x] < 100:
+								sameCases.append('hands')
 							for y,y_value in enumerate(self.slots):
 								for x,x_value in enumerate(y_value):
+									if x_value is not None and x_value.data['name'] == caseInfo['x_value'].data['name'] and x_value.data['stats']['stackable'] and self.stacks[y][x] < 100:
+										sameCases.append((y,x))
 									if x_value is None:
 										freeCases.append((y,x))
 							
-							if len(freeCases) > 0:
+							if len(sameCases) > 0:
+								if sameCases[0] == 'hands':
+									self.handsStack += 1
+								else:
+									y,x = sameCases[0]
+									if self.slots[y][x] is not None:
+										self.stacks[y][x] += 1
+								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'])
+
+							elif len(freeCases) > 0:
 								if freeCases[0] == 'hands':
 									self.hands = caseInfo['x_value']
+									self.handsStack = 1
 								else:
 									y,x = freeCases[0]
 									self.slots[y][x] = caseInfo['x_value']
+									self.stacks[y][x] = 1
 								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'])
 	
 						else:
@@ -346,7 +408,6 @@ class SkillTree():
 		if passThrough['currentHUD'] == 'skillTree':
 			self.skillTree(passThrough)
 			
-
 	def skillTree(self,passThrough):
 		scale = passThrough['HudScale']
 		width, height = passThrough['window'].get_size()
@@ -375,7 +436,7 @@ class SkillTree():
 		passThrough['window'].blit(popup, (coords['left'], coords['top']))
 		
 		# logic for first part -> skills and skills bar
-		#  # logic for left part -> skills name
+		#### logic for left part -> skills name
 
 		heightOfEachPart = (coords['height']/2) / (len(self.skills) + 1)
 		imgWidth, imgHeight = self.font.size('h')
@@ -386,6 +447,13 @@ class SkillTree():
 		imgLeft, imgTop = coords['left'] + marginTop, coords['top']  + marginTop/1.5
 		passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
 		passThrough['window'].blit(img,(imgLeft, imgTop))
+
+		if self.player.stats['points'] > 0:
+			img = self.font.render(f"{self.player.stats['points']} points", False, (255, 242, 0))
+			imgShadow = self.font.render(f"{self.player.stats['points']} points", False, (255,200,0))
+			imgLeft, imgTop = coords['left'] + coords['width'] - img.get_width() - marginTop, coords['top']  + marginTop/1.5
+			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			passThrough['window'].blit(img,(imgLeft, imgTop))
 
 		longerSkillName = 0
 		for i in range(len(self.skills)):
@@ -398,16 +466,32 @@ class SkillTree():
 			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
 			passThrough['window'].blit(img,(imgLeft, imgTop))
 			
-		#  # logic for right part -> skills bars
+		#### logic for right part -> skills bars
 
 		barCoord = {}
-		barCoord['left'] = imgLeft + longerSkillName + marginTop
-		barCoord['width'] = coords['width'] - barCoord['left'] + coords['left'] - marginTop
+		barCoord['btnWidth'] = img.get_height()
+		barCoord['left'] = imgLeft + longerSkillName + marginTop + barCoord['btnWidth'] + marginTop/1.5
+		barCoord['width'] = coords['width'] - barCoord['left'] + coords['left'] - marginTop 
 		barRadius = 5*scale
 
 		for i in range(len(self.skills)):
 			top = (i+1)*heightOfEachPart + coords['top'] + marginTop/1.5
-			leftOfEachPoly = (barCoord['width']- 2*barRadius) /self.skills[i]['maxSteps']
+
+			collisionRect = Rect((barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 ,top),(int(barCoord['btnWidth']),int(barCoord['btnWidth'])))
+			isHover = collisionRect.collidepoint(pygame.mouse.get_pos())
+			btnColor = (133, 125, 66) if isHover else (255, 147, 38)
+			btnColor = btnColor if self.player.stats['points'] > 0 and self.skills[i]['steps'] < self.skills[i]['maxSteps'] else (133, 125, 66)
+
+			rects, circles = gFunction.createRectWithRoundCorner(barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 ,top,int(barCoord['btnWidth']),int(barCoord['btnWidth']),barRadius)
+			for rect in rects:
+				pygame.draw.rect(passThrough['window'],btnColor,Rect(rect))
+			for circle in circles:
+				pygame.draw.circle(passThrough['window'],btnColor,circle,barRadius)
+
+			img = self.font.render("+", False, (255, 255, 255))
+			passThrough['window'].blit(img,(barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 + img.get_width()/2 + scale/2, top - scale))
+
+			leftOfEachPoly = (barCoord['width'] - barRadius) /self.skills[i]['maxSteps']
 			barStepsSteep = leftOfEachPoly - 2*scale if leftOfEachPoly - 2*scale < 10*scale else 10*scale
 			for step in range(self.skills[i]['maxSteps']):
 				color = (255, 147, 38) if step+1 <= self.skills[i]['steps'] else (133, 125, 66)
@@ -423,8 +507,7 @@ class SkillTree():
 						(barCoord['left'] + step*leftOfEachPoly + barRadius, top+img.get_height())
 					]
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
-					pygame.draw.polygon(passThrough['window'], color, points)
-					
+					pygame.draw.polygon(passThrough['window'], color, points)		
 				elif step == self.skills[i]['maxSteps']-1:
 					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + barRadius),barRadius,draw_top_right=True)
 					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + img.get_height() - barRadius),barRadius,draw_bottom_right=True)
@@ -438,7 +521,6 @@ class SkillTree():
 					]
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
 					pygame.draw.polygon(passThrough['window'], color, points)
-
 				else:
 					points = [
 						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep, top),
@@ -449,8 +531,16 @@ class SkillTree():
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
 					pygame.draw.polygon(passThrough['window'], color, points)
 
-		# logic for second part -> global player stats
+			# handle clicks requests
+			if passThrough['mousePosClick'] is not None:
+				if collisionRect.collidepoint(passThrough['mousePosClick']):
+					skill = self.skills[i]
+					if self.player.stats['points'] > 0 and skill['steps'] < skill['maxSteps']:
+						skill['steps'] += 1
+						self.player.stats['points'] -= 1
+						self.player.applyNewStats()
 
+		# logic for second part -> global player stats
 
 class Entity(gregngine.Entity):
 	def __init__(self, param):
@@ -478,6 +568,7 @@ class Player(gregngine.Entity):
 		self.camera = None
 		self.inventory = Inventory(self)
 		self.skillTree = SkillTree(self)
+		self.applyNewStats()
 
 		self.stats["energy"] = self.stats["maxEnergy"]
 		self.stats["level"] = 1
@@ -501,6 +592,15 @@ class Player(gregngine.Entity):
 		self.bigFont = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 30*self.engine.param['HudScale'])
 		self.smallFont = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 14*self.engine.param['HudScale'])
 
+	def applyNewStats(self):
+		for skill in self.data['skillTree']['skills']:
+			if skill['statPerStep']['mode'] == 'add':
+				self.stats[skill['statToModify']] = self.data['baseStats'][skill['statToModify']] + skill['steps']*skill['statPerStep']['value']
+			elif skill['statPerStep']['mode'] == 'sub':
+				self.stats[skill['statToModify']] = self.data['baseStats'][skill['statToModify']] - skill['steps']*skill['statPerStep']['value']
+
+		self.data['animation']['attack']['stepTime'] = self.stats['atkPerSec']/len(self.data['animation']['attack']['steps'])
+
 	def addMoney(self,money):
 		addition = self.stats["money"] + money
 		if addition > self.moneyLimit:
@@ -519,6 +619,11 @@ class Player(gregngine.Entity):
 				self.addExp(rest)
 			else:
 				self.stats["experience"] = addition
+
+	def healOf(self,ammount):
+		self.stats['health'] += ammount
+		if self.stats['health'] > self.stats['maxHealth']:
+			self.stats['health'] = self.stats['maxHealth']
 
 	def drawHud(self, xPos, yPos, passThrough):
 		self.inventory.drawHud(passThrough)
@@ -694,8 +799,8 @@ class Player(gregngine.Entity):
 		if self.inventory.hands is None:
 			atkPerSec = self.stats['atkPerSec']
 			damage = self.stats['atkBaseDamage']
-		elif self.inventory.hands.data['itemType'] != 'weapon':
-			return None
+		elif self.inventory.hands.data['itemType'] == 'consumable':
+			atkPerSec = self.stats['atkPerSec']
 		else:
 			atkPerSec = self.stats['atkPerSec']*weaponTypeAPSMultiplier.get(self.inventory.hands.data['weaponType'])
 			damage = self.stats['atkBaseDamage'] + self.inventory.hands.data['stats']['damage']
@@ -703,6 +808,10 @@ class Player(gregngine.Entity):
 		currentTime = time.time()   
 		if currentTime-self.lastAttackTime >= atkPerSec and not self.isAttacking:
 			self.lastAttackTime = currentTime 
+
+			if self.inventory.hands is not None and self.inventory.hands.data['itemType'] == 'consumable':
+				self.consumeItemInHand()
+				return None
 
 			dico = {
 				'TOP WALK': 'top',
@@ -768,6 +877,17 @@ class Player(gregngine.Entity):
 
 		return None
 
+	def consumeItemInHand(self):
+		if self.inventory.hands.data["itemType"] == 'consumable':
+			if 'heal' in self.inventory.hands.data['stats']:
+				self.healOf(self.inventory.hands.data['stats']['heal'])
+
+			if self.inventory.handsStack > 1:
+				self.inventory.handsStack -= 1
+			else:
+				self.inventory.hands = None
+				self.inventory.handsStack = 0
+			
 	def draw(self, xStart, yStart, passThrough):
 		super().draw(xStart, yStart, passThrough)
 
@@ -791,38 +911,68 @@ class Engine(gregngine.Engine):
 
 		self.rezizeSprites()
 
-		playerParam = {
-			"name" : 'player',
-			"entityRepr" : 'player',
-			"engine": self,
-			'x':6,
-			'y':6}
-		self.player = Player(playerParam)
-		self.player.initPostParent()
-		self.player.camera = self.mainCamera
-		self.mainCamera.setPos(0,0)
-		self.loadSaves()
-
-		sword = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
-		mace  = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
-
-		self.entitiesManager.addEntity(self.player)
-		self.entitiesManager.addEntity(sword)
-		self.entitiesManager.addEntity(mace)
-
-		#self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
-		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
-		"""self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim4","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':15}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim5","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':16}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat2","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':7,'y':15}))
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat3","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':8,'y':15}))"""
+		savesLoaded = self.loadSaves()
 		
+		if not savesLoaded:
+			playerParam = {
+				"name" : 'player',
+				"entityRepr" : 'player',
+				"engine": self,
+				'x':6,
+				'y':6}
+			self.player = Player(playerParam)
+			self.player.initPostParent()
+			self.player.camera = self.mainCamera
+			self.mainCamera.setPos(0,0)
+
+			self.entitiesManager.addEntity(self.player)
+
+			sword = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
+			mace  = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
+			bread  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+			bread2  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+			bread3  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+
+			self.entitiesManager.addEntity(self.player)
+			self.entitiesManager.addEntity(sword)
+			self.entitiesManager.addEntity(bread)
+			self.entitiesManager.addEntity(bread2)
+			self.entitiesManager.addEntity(bread3)
+
+			self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
+		
+		self.loadScreenSaves()
+
 	def rezizeSprites(self):
 		for sprite in self.world.sprites:
 			self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
+
+	def loadScreenSaves(self):
+		super().loadSaves()
+
+	def loadSaves(self):
+		if not os.path.exists(self.savePath + "/data.save"):
+			return False
+
+		with open(self.savePath + "/data.save", 'rb') as f:
+			data = pickle.load(f)
+
+			playerParam = {
+				"name" : 'player',
+				"entityRepr" : 'player',
+				"engine": self}
+			playerParam['x'],playerParam['y'] = data['playerPos']
+			self.player = Player(playerParam)
+			self.player.initPostParent()
+			self.player.camera = self.mainCamera
+			self.mainCamera.setPos(0,0)
+
+			self.player.animator.lastAnimation = data['playerOrientation']
+			self.player.animator.animation = data['playerOrientation']
+			self.entitiesManager.addEntity(self.player)
+
+		print('data loaded')
+		return True
 
 	def main(self,inputEvent,inputPressed):
 		if self.currentHUD in self.states['play']:

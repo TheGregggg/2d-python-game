@@ -37,12 +37,18 @@ But final : avoir battu les 5 bosses du jeu
  - monstre attaque le joueur
  - animation attaque du monstre
  - HUD d'inventaire
+ - deplacements objets dans l'inventaire
+ - gestion stacks
+ - items utilisable (potion, nourriture)
+ - afficher nom objets dans inventaire
  - HUD pv des monstres au dessus d'eux
  - menu in-game (touche esc)
  - editeur de carte complet
  - gestion argent perso
  - gestion experience + montée de niveau perso
  - gestion drop quand monstre meurt
+ - menu player utiliser points (arbre compétences)
+ - modification des stats du joueur en fonctions de l'arbre de compétences
 
 ## Dossiers:
  - gregngine : dossier moteur de jeu perso
@@ -53,16 +59,35 @@ But final : avoir battu les 5 bosses du jeu
  - pickle5 : dossier contenant la derniere version de pickle pour assurer la compatibilité entre python 3.8 et 3.6
 
 ## Todo:
- - refactor attaque animation pour entitées et player
  - créer menu démarrer 
- - créer  items utilisable (potion)
- - optimization world renderer
- - menu player utiliser points (arbre compétences)
+ - ajouter du son
+    - deplacement perso
+    - attaque
+    - utilisation object
+    - monstre deplacement 
+    - monstre attaque
+    - monstre mort
+    - menu ouverture/fermture
+    - menu click
+    - monté de niveau son
+    - ambiance sonore
+    
+ - ajouter items 
+ - ajouter armes
+ - ajouter monstres
  - npc pour acheter objects
  - systeme sauvegarde
     - save entitées present au format json 
     - save player format json
     - load -> utiliser c'est fichier de sauvegarde apres les fichiers d'init (present dans ./entities) pour ensuite les overwrite avec les éléments sauvegardés
+
+ - donjons infini
+ - systeme quetes
+
+
+ - optimization world renderer
+ - refactor attaque animation pour entitées et player
+ - multi-threading
 
 ## Gregngine:
 Gregngine est le moteur de jeu réalisé pour créer des jeux en 2d et en vue de dessus.

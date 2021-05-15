@@ -1,0 +1,24 @@
+{
+    "name": "bread",
+    "displayedName": "Bread",
+    "type": "item",
+    "itemType": "consumable",
+    "consumableType": "food",
+    "tilemap": {
+        "name":"tilemap",
+        "src":"food.png",
+        "totalColumns": 8,
+        "totalRow": 8,
+        "colStart": 2,
+        "rowStart": 3,
+        "ratio": 1,
+        "scaling": 0.75,
+        "leftOffset": 6,
+        "topOffset": 5
+    },
+    "stats": {
+        "stackable": true,
+        "cost": 10,
+        "heal": 20
+    }
+}
