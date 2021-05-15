@@ -53,6 +53,7 @@ But final : avoir battu les 5 bosses du jeu
  - refactor attaque animation pour entitées et player
  - créer menu démarrer 
  - créer  items utilisable (potion)
+ - optimization world renderer
  - gestion argent perso
  - gestion experience + montée de niveau perso
  - gestion drop quand monstre meurt

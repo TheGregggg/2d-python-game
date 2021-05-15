@@ -13,10 +13,10 @@ import pygame
 from pygame.locals import *
 
 actions = {
-	"up":     pygame.K_w,
+	"up":     pygame.K_z,
 	"down":   pygame.K_s,
 	"right":  pygame.K_d,
-	"left":   pygame.K_a,
+	"left":   pygame.K_q,
 	"sprint": pygame.K_LSHIFT,
 	"attack": pygame.K_SPACE,
 	"inventory": pygame.K_i,
@@ -149,7 +149,8 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		print('Options')
 
 	def btnQuit(self):
-		print('Quit')
+		pygame.quit()
+		quit()
 
 class Item():
 	def __init__(self,param):
@@ -336,6 +337,9 @@ class Player(gregngine.Entity):
 		self.inventory.player = self
 
 		self.stats["energy"] = self.stats["maxEnergy"]
+		self.stats["level"] = 1
+		self.stats["experience"] = 1
+		self.stats["nextLevelExp"] = 10
 
 		self.lastAttackTime = time.time()
 		self.isAttacking = False
@@ -343,27 +347,113 @@ class Player(gregngine.Entity):
 
 		self.animator.setFrame()
 
+	def initPostParent(self):
+		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 30*self.parent.param['HudScale'])
+
 	def drawHud(self, xPos, yPos, passThrough):
 		self.inventory.drawHud(passThrough)
 
 		if passThrough['currentHUD'] == 'main':
-			healthCoords = {
-				'top': 8,
-				'left': 8,
-				'width': 100,
-				'height': 20,
-				'outline': 4
-			}
-			energyCoords = {
-				'top': 32,
-				'left': 8,
-				'width': 100,
-				'height': 20,
-				'outline': 4
-			}
+			scale = passThrough['HudScale']
 
-			self.drawHudBar(self.stats["health"],self.stats['maxHealth'],(255,80,0),passThrough,healthCoords)
-			self.drawHudBar(self.stats["energy"],self.stats['maxEnergy'],(0,80,255),passThrough,energyCoords)
+			top = 8
+			left = 8
+
+			expValue = 143*(self.stats['experience']/self.stats['nextLevelExp']) 
+			expValue = expValue if expValue > 7 else 7
+
+			healValue = 94*(self.stats['health']/self.stats['maxHealth']) 
+			healValue = healValue if healValue > 7 else 7
+
+			energyValue = 94*(self.stats['energy']/self.stats['maxEnergy']) 
+			energyValue = energyValue if energyValue > 7 else 7
+
+			rectCoords = [
+				{ # first rect
+					'top': 0,
+					'left': 0,
+					'width': 50,
+					'height': 50
+				},{ # ---- exp bar ------
+					# second bottom rect 
+					'top': 39,
+					'left': 0,
+					'width': 150,
+					'height': 11
+				},{ # exp bar behind rect
+					'top': 43,
+					'left': 2,
+					'width': 143,
+					'height': 3,
+					'color': (85,85,85,255)
+				},{ # exp bar front rect
+					'top': 41,
+					'left': 2,
+					'width': expValue,
+					'height': 7,
+					'color': (0, 135, 255,255)
+				},{ # ---- heal bar ----
+					# heal bar outline bottom rect
+					'top': 2,
+					'left': 52,
+					'width': 98,
+					'height': 11
+				},{ # heal bar behind rect
+					'top': 6,
+					'left': 55,
+					'width': 91,
+					'height': 3,
+					'color': (85,85,85,255)
+				},{ # heal bar front rect
+					'top': 4,
+					'left': 54,
+					'width': healValue,
+					'height': 7,
+					'color': (255,80,0,255)
+				},{ # ---- energy bar ----
+					# energy bar outline bottom rect
+					'top': 15,
+					'left': 52,
+					'width': 98,
+					'height': 11
+				},{ # energy bar behind rect
+					'top': 19,
+					'left': 55,
+					'width': 91,
+					'height': 3,
+					'color': (85,85,85,255)
+				},{ # energy bar front rect
+					'top': 17,
+					'left': 54,
+					'width': energyValue,
+					'height': 7,
+					'color': (0,80,255,255)
+				}
+			]
+			transparency = 225
+			Radius = 10
+
+			case = pygame.Surface((150*scale,50*scale), pygame.SRCALPHA)
+			for coords in rectCoords:
+				radius = Radius*scale if Radius*scale <= coords['height']*scale/2 else coords['height']*scale/2
+				color = coords['color'] if 'color' in coords else (0,0,0,transparency)
+				rects, circles = gFunction.createRectWithRoundCorner(coords['left']*scale,coords['top']*scale,coords['width']*scale,coords['height']*scale,radius)
+				for rect in rects:
+					pygame.draw.rect(case,color,Rect(rect))
+				for circle in circles:
+					pygame.draw.circle(case,color,circle,radius)
+				
+				if coords == rectCoords[0]:
+					pygame.draw.rect(case,(0,0,0,transparency),
+						Rect(rectCoords[0]['width']*scale,(rectCoords[1]['top']-Radius)*scale,Radius*scale,Radius*scale)) #little concave circle
+					pygame.draw.circle(case,(0,0,0,0),((rectCoords[0]['width']+Radius)*scale,(rectCoords[1]['top']-Radius)*scale),Radius*scale,draw_bottom_left=True) #little concave circle mask
+			
+			passThrough['window'].blit(case, (left*scale, top*scale))
+
+			img = self.font.render(str(self.stats['level']), False, (255, 242, 0))
+			imgLeft = int(left*scale + rectCoords[0]['width']*scale/2 - img.get_width()/2) + scale
+			imgTop = int(top*scale + rectCoords[1]['top']*scale/2 - img.get_height()/2) + scale
+			passThrough['window'].blit(img,(imgLeft, imgTop))
 
 	def drawHudBar(self,value,max,color,passThrough,coords):
 		"""
@@ -530,6 +620,7 @@ class Engine(gregngine.Engine):
 			'y':6}
 		self.player = Player(playerParam)
 		self.player.parent = self
+		self.player.initPostParent()
 		self.player.camera = self.mainCamera
 		self.mainCamera.setPos(0,0)
 		self.loadSaves()
@@ -541,7 +632,7 @@ class Engine(gregngine.Engine):
 		self.entitiesManager.addEntity(sword)
 		self.entitiesManager.addEntity(mace)
 
-		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
+		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
 		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
 		"""self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
