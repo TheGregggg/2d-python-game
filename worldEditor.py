@@ -282,8 +282,7 @@ class Engine(gregngine.Engine):
 		playerParam = {
 			"name" : 'player',
 			"entityRepr" : 'player',
-			"pixelSize": self.param['pixelSize'],
-			"scaleMultiplier": self.param['scaleMultiplier'],
+			"engine": self,
 			'x':6,
 			'y':6}
 		self.player = Player(playerParam)

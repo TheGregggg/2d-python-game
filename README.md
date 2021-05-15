@@ -40,6 +40,9 @@ But final : avoir battu les 5 bosses du jeu
  - HUD pv des monstres au dessus d'eux
  - menu in-game (touche esc)
  - editeur de carte complet
+ - gestion argent perso
+ - gestion experience + montée de niveau perso
+ - gestion drop quand monstre meurt
 
 ## Dossiers:
  - gregngine : dossier moteur de jeu perso
@@ -54,9 +57,7 @@ But final : avoir battu les 5 bosses du jeu
  - créer menu démarrer 
  - créer  items utilisable (potion)
  - optimization world renderer
- - gestion argent perso
- - gestion experience + montée de niveau perso
- - gestion drop quand monstre meurt
+ - menu player utiliser points (arbre compétences)
  - npc pour acheter objects
  - systeme sauvegarde
     - save entitées present au format json 

@@ -121,14 +121,18 @@ class Entity(object):
 		param = {
 			"name" : x,
 			"entityRepr" : y,
-			"pixelSize": 16,
-			"scaleMultiplier": 6,
+			"engine" : engine obj
+			"x": 0,
+			"y": 0
 		}
 		"""
 		self.param = param
 		self.name = param['name']
 
-		self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
+		self.engine = param['engine']
+		self.param["pixelSize"] = self.engine.param["pixelSize"]
+		self.param["scaleMultiplier"] = self.engine.param["scaleMultiplier"]
+		self.param['newPixelScale'] = self.engine.param["newPixelScale"]
 
 		self.x = param['x']
 		self.y = param['y']
@@ -287,6 +291,9 @@ class Entity(object):
 				pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
 				pygame.draw.rect(passThrough['window'],(255,0,0),rect[1])
 
+	def death(self):
+		pass
+
 class EntitiesManager(object):
 	def __init__(self):
 		self.entities = []
@@ -304,6 +311,7 @@ class EntitiesManager(object):
 	def killEntity(self,ent):
 		for entity in self.entities:
 			if entity == ent:
+				entity.death()
 				self.entities.remove(entity)
 
 class HUDMenuManager(object):
@@ -323,7 +331,7 @@ class Engine(object):
 		"""
 		Principal engine class
 
-		engine do each loop:
+		engine do each frame this loop:
 			- transmit input
 			- apply physical changes
 			- Draw all visible entities

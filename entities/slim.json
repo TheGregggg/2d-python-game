@@ -8,11 +8,11 @@
         "speed": 3,
         "drops":[
             {
-                "rate": 50,
-                "loot": "slimBall"
+                "rate": 100,
+                "loot": "normal_sword"
             }
         ],
-        "exp": 100
+        "exp": 10
     },
     "collider":{
         "size": {

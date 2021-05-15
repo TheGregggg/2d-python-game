@@ -4,6 +4,7 @@ import gregngine.functions as gFunction
 import world
 
 import math
+import random
 import time
 
 import shelve
@@ -156,14 +157,17 @@ class Item():
 	def __init__(self,param):
 		"""
 		param = {
-			itemRepr
-			"pixelSize": 16,
-			"scaleMultiplier": 6,
+			"itemRepr" : itemRepr,
+			"engine" : engine obj
 		}
 		"""
 	
 		self.param = param
-		self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
+
+		self.engine = param['engine']
+		self.param["pixelSize"] = self.engine.param["pixelSize"]
+		self.param["scaleMultiplier"] = self.engine.param["scaleMultiplier"]
+		self.param['newPixelScale'] = self.engine.param["newPixelScale"]
 
 		if not 'x' in param:
 			self.isGrounded = False
@@ -214,6 +218,9 @@ class Item():
 		pass
 
 	def drawHud(self, xPos, yPos, passThrough):
+		pass
+
+	def death(self):
 		pass
 
 class Inventory():
@@ -319,15 +326,30 @@ class Inventory():
 								else:
 									y,x = freeCases[0]
 									self.slots[y][x] = caseInfo['x_value']
-								self.player.parent.entitiesManager.killEntity(caseInfo['x_value'])
+								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'])
 	
 						else:
 							self.isOpen = False
 
+class Entity(gregngine.Entity):
+	def __init__(self, param):
+		super().__init__(param)
+	
+	def death(self):
+		print('im dead')
+		if self.data['type'] == 'monster':
+			for drop in self.stats['drops']:
+				rng = random.randint(0,100)
+				print(f"{rng} of {drop['rate']} to spawn {drop['loot']}")
+				if drop['rate'] >= rng:
+					item = Item({'itemRepr': drop['loot'], "engine": self.engine,'x': int(self.x),'y': int(self.y),'isGrounded':True})
+					self.engine.entitiesManager.addEntity(item)
+			
+			self.engine.player.addExp(self.stats['exp'])
+
 class Player(gregngine.Entity):
 	def __init__(self, param):
 		super().__init__(param)
-		self.parent = None
 
 		self.speed = self.stats["normalSpeed"]
 		self.running = False
@@ -338,8 +360,10 @@ class Player(gregngine.Entity):
 
 		self.stats["energy"] = self.stats["maxEnergy"]
 		self.stats["level"] = 1
-		self.stats["experience"] = 1
-		self.stats["nextLevelExp"] = 10
+		self.applyExpFromLevel()
+
+		self.moneyLimit = 9999999
+		self.stats["money"] = 0
 
 		self.lastAttackTime = time.time()
 		self.isAttacking = False
@@ -347,8 +371,33 @@ class Player(gregngine.Entity):
 
 		self.animator.setFrame()
 
+	def applyExpFromLevel(self):
+		expTable = self.data['experienceTable']
+		self.stats["experience"] = 0
+		self.stats["nextLevelExp"] = expTable[str(self.stats["level"])]['nextLevelExp']
+
 	def initPostParent(self):
-		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 30*self.parent.param['HudScale'])
+		self.bigFont = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 30*self.engine.param['HudScale'])
+		self.smallFont = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 14*self.engine.param['HudScale'])
+
+	def addMoney(self,money):
+		addition = self.stats["money"] + money
+		if addition > self.moneyLimit:
+			self.stats["money"] = self.moneyLimit
+		else:
+			self.stats["money"] = addition
+	
+	def addExp(self,exp):
+		if self.stats["level"] < 100:
+			addition = self.stats["experience"] + exp
+			if addition > self.stats["nextLevelExp"]:
+				self.stats["level"] += 1
+				self.stats["points"] += 1
+				rest = addition - self.stats["nextLevelExp"]
+				self.applyExpFromLevel()
+				self.addExp(rest)
+			else:
+				self.stats["experience"] = addition
 
 	def drawHud(self, xPos, yPos, passThrough):
 		self.inventory.drawHud(passThrough)
@@ -450,9 +499,18 @@ class Player(gregngine.Entity):
 			
 			passThrough['window'].blit(case, (left*scale, top*scale))
 
-			img = self.font.render(str(self.stats['level']), False, (255, 242, 0))
+			# render level text
+			img = self.bigFont.render(str(self.stats['level']), False, (255, 242, 0))
 			imgLeft = int(left*scale + rectCoords[0]['width']*scale/2 - img.get_width()/2) + scale
 			imgTop = int(top*scale + rectCoords[1]['top']*scale/2 - img.get_height()/2) + scale
+			passThrough['window'].blit(img,(imgLeft, imgTop))
+
+			# render money text
+			img = self.smallFont.render(str(self.stats['money']) + ' $', False, (255, 242, 0))
+			imgShadow = self.smallFont.render(str(self.stats['money']) + ' $', False, (0, 0, 0, 0.5))
+			imgLeft = int(left*scale + rectCoords[1]['width']*scale - img.get_width()) + scale
+			imgTop = int(top*scale + rectCoords[7]['top']*scale + img.get_height()/2 )
+			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
 			passThrough['window'].blit(img,(imgLeft, imgTop))
 
 	def drawHudBar(self,value,max,color,passThrough,coords):
@@ -614,25 +672,23 @@ class Engine(gregngine.Engine):
 		playerParam = {
 			"name" : 'player',
 			"entityRepr" : 'player',
-			"pixelSize": self.param['pixelSize'],
-			"scaleMultiplier": self.param['scaleMultiplier'],
+			"engine": self,
 			'x':6,
 			'y':6}
 		self.player = Player(playerParam)
-		self.player.parent = self
 		self.player.initPostParent()
 		self.player.camera = self.mainCamera
 		self.mainCamera.setPos(0,0)
 		self.loadSaves()
 
-		sword = Item({'itemRepr':'normal_sword',"pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':6,'isGrounded':True})
-		mace  = Item({'itemRepr':'normal_mace' ,"pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':11,'y':6,'isGrounded':True})
+		sword = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
+		mace  = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
 
 		self.entitiesManager.addEntity(self.player)
 		self.entitiesManager.addEntity(sword)
 		self.entitiesManager.addEntity(mace)
 
-		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim1","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':9,'y':10}))
+		self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
 		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
 		"""self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
