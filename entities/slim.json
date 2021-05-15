@@ -6,13 +6,18 @@
         "atkPerSec": 1.5,
         "atkDamage": 10,
         "speed": 3,
+        "exp": 10,
         "drops":[
             {
                 "rate": 100,
                 "loot": "normal_sword"
+            },
+            {
+                "rate": 100,
+                "loot": "normal_mace"
             }
-        ],
-        "exp": 10
+
+        ]
     },
     "collider":{
         "size": {

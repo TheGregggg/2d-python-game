@@ -60,6 +60,58 @@
     "camera":{
         "smoothOffset": 0.2
     },
+    "skillTree":{
+        "skills":[
+            {
+                "name": "attack",
+                "displayName": "Attack",
+                "statToModify": "atkBaseDamage",
+                "steps": 0,
+                "maxSteps": 30,
+                "statPerStep": {
+                    "type": "int",
+                    "value": 10,
+                    "mode": "add"
+                }
+            },
+            {
+                "name": "atkPerSec",
+                "displayName": "Atk / sec",
+                "statToModify": "atkPerSec",
+                "steps": 0,
+                "maxSteps": 10,
+                "statPerStep": {
+                    "type": "float",
+                    "value": 0.02,
+                    "mode": "sub"
+                }
+            },
+            {
+                "name": "maxHealth",
+                "displayName": "Health max",
+                "statToModify": "maxHealth",
+                "steps": 0,
+                "maxSteps": 30,
+                "statPerStep": {
+                    "type": "int",
+                    "value": 10,
+                    "mode": "add"
+                }
+            },
+            {
+                "name": "maxEnergy",
+                "displayName": "Energy max",
+                "statToModify": "maxEnergy",
+                "steps": 0,
+                "maxSteps": 30,
+                "statPerStep": {
+                    "type": "int",
+                    "value": 10,
+                    "mode": "add"
+                }
+            }
+        ]
+    },
     "experienceTable":{
         "1" : {"totalExp": 0 , "nextLevelExp": 8 },       
         "2" : {"totalExp": 8 , "nextLevelExp": 19 },      

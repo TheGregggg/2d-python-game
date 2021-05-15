@@ -21,6 +21,7 @@ actions = {
 	"sprint": pygame.K_LSHIFT,
 	"attack": pygame.K_SPACE,
 	"inventory": pygame.K_i,
+	"skillTree": pygame.K_TAB,
 	"pause": pygame.K_ESCAPE
 }
 
@@ -224,11 +225,11 @@ class Item():
 		pass
 
 class Inventory():
-	def __init__(self):
+	def __init__(self,player):
 		self.slots = [[None,None,None,None],[None,None,None,None]]
 		self.hands = None
 		self.isOpen = False
-		self.player = None
+		self.player = player
 	
 	def drawHud(self,passThrough):
 		scale = passThrough['HudScale']
@@ -331,6 +332,126 @@ class Inventory():
 						else:
 							self.isOpen = False
 
+class SkillTree():
+	def __init__(self,player):
+		self.player = player
+		self.skills = self.player.data['skillTree']['skills']
+		self.isOpen = False
+		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 20*self.player.engine.param['HudScale'])
+	
+	def drawHud(self,passThrough):
+		if passThrough['currentHUD'] not in ['skillTree']:
+			return
+
+		if passThrough['currentHUD'] == 'skillTree':
+			self.skillTree(passThrough)
+			
+
+	def skillTree(self,passThrough):
+		scale = passThrough['HudScale']
+		width, height = passThrough['window'].get_size()
+
+		percentageHeight = 1.2
+		percentageWidth = 1.2
+
+		coords = {
+			'left': (width - width/percentageWidth)/2,
+			'top': (height - height/percentageHeight)/2,
+			'height': height/percentageHeight,
+			'width': width/percentageWidth
+		}
+
+		transparency = 150
+		radius = 10
+		radius *= scale
+
+		rects, circles = gFunction.createRectWithRoundCorner(0,0,coords['width'],coords['height'],radius)
+		popup = pygame.Surface((coords['width'],coords['height']), pygame.SRCALPHA)
+		for rect in rects:
+			pygame.draw.rect(popup,(0,0,0,transparency),Rect(rect))
+		for circle in circles:
+			pygame.draw.circle(popup,(0,0,0,transparency),circle,radius)
+
+		passThrough['window'].blit(popup, (coords['left'], coords['top']))
+		
+		# logic for first part -> skills and skills bar
+		#  # logic for left part -> skills name
+
+		heightOfEachPart = (coords['height']/2) / (len(self.skills) + 1)
+		imgWidth, imgHeight = self.font.size('h')
+		marginTop = heightOfEachPart - imgHeight
+
+		img = self.font.render("Skill tree", False, (255, 242, 0))
+		imgShadow = self.font.render("Skill tree", False, (255,200,0))
+		imgLeft, imgTop = coords['left'] + marginTop, coords['top']  + marginTop/1.5
+		passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
+		passThrough['window'].blit(img,(imgLeft, imgTop))
+
+		longerSkillName = 0
+		for i in range(len(self.skills)):
+			img = self.font.render(self.skills[i]['displayName'], False, (255, 242, 0))
+			if img.get_width() > longerSkillName:
+				longerSkillName = img.get_width()
+			imgShadow = self.font.render(self.skills[i]['displayName'], False, (255,200,0))
+			imgLeft = coords['left'] + marginTop
+			imgTop = coords['top'] + (i+1)*heightOfEachPart + marginTop/1.5
+			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			passThrough['window'].blit(img,(imgLeft, imgTop))
+			
+		#  # logic for right part -> skills bars
+
+		barCoord = {}
+		barCoord['left'] = imgLeft + longerSkillName + marginTop
+		barCoord['width'] = coords['width'] - barCoord['left'] + coords['left'] - marginTop
+		barRadius = 5*scale
+
+		for i in range(len(self.skills)):
+			top = (i+1)*heightOfEachPart + coords['top'] + marginTop/1.5
+			leftOfEachPoly = (barCoord['width']- 2*barRadius) /self.skills[i]['maxSteps']
+			barStepsSteep = leftOfEachPoly - 2*scale if leftOfEachPoly - 2*scale < 10*scale else 10*scale
+			for step in range(self.skills[i]['maxSteps']):
+				color = (255, 147, 38) if step+1 <= self.skills[i]['steps'] else (133, 125, 66)
+				if step == 0:
+					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + barRadius,top + barRadius),barRadius,draw_top_left=True)
+					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + barRadius,top + img.get_height() - barRadius),barRadius,draw_bottom_left=True)
+					pygame.draw.rect(passThrough['window'],color,Rect(barCoord['left'] + step*leftOfEachPoly, top + barRadius, barRadius, img.get_height() - 2*barRadius))
+
+					points = [
+						(barCoord['left'] + step*leftOfEachPoly + barRadius, top),
+						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep + leftOfEachPoly - 2*scale, top),
+						(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top+img.get_height()),
+						(barCoord['left'] + step*leftOfEachPoly + barRadius, top+img.get_height())
+					]
+					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
+					pygame.draw.polygon(passThrough['window'], color, points)
+					
+				elif step == self.skills[i]['maxSteps']-1:
+					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + barRadius),barRadius,draw_top_right=True)
+					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + img.get_height() - barRadius),barRadius,draw_bottom_right=True)
+					pygame.draw.rect(passThrough['window'],color,Rect(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top + barRadius, barRadius, img.get_height() - 2*barRadius))
+
+					points = [
+						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep, top),
+						(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top),
+						(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top+img.get_height()),
+						(barCoord['left'] + step*leftOfEachPoly, top+img.get_height())
+					]
+					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
+					pygame.draw.polygon(passThrough['window'], color, points)
+
+				else:
+					points = [
+						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep, top),
+						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep + leftOfEachPoly - 2*scale, top),
+						(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top+img.get_height()),
+						(barCoord['left'] + step*leftOfEachPoly, top+img.get_height())
+					]
+					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
+					pygame.draw.polygon(passThrough['window'], color, points)
+
+		# logic for second part -> global player stats
+
+
 class Entity(gregngine.Entity):
 	def __init__(self, param):
 		super().__init__(param)
@@ -355,8 +476,8 @@ class Player(gregngine.Entity):
 		self.running = False
 
 		self.camera = None
-		self.inventory = Inventory()
-		self.inventory.player = self
+		self.inventory = Inventory(self)
+		self.skillTree = SkillTree(self)
 
 		self.stats["energy"] = self.stats["maxEnergy"]
 		self.stats["level"] = 1
@@ -401,6 +522,7 @@ class Player(gregngine.Entity):
 
 	def drawHud(self, xPos, yPos, passThrough):
 		self.inventory.drawHud(passThrough)
+		self.skillTree.drawHud(passThrough)
 
 		if passThrough['currentHUD'] == 'main':
 			scale = passThrough['HudScale']
@@ -658,7 +780,7 @@ class Engine(gregngine.Engine):
 		self.newPixelScale = self.param['newPixelScale']
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
-		self.states['play'] = ['main','inventory']
+		self.states['play'] = ['main','inventory','skillTree']
 		self.states['pause'] = ['pauseMenu']
 
 		self.collisionsDistance = 1.5
@@ -688,7 +810,7 @@ class Engine(gregngine.Engine):
 		self.entitiesManager.addEntity(sword)
 		self.entitiesManager.addEntity(mace)
 
-		self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
+		#self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
 		#self.entitiesManager.addEntity(gregngine.Entity({"name" : "bat1","entityRepr" : "bat","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':6,'y':15}))
 		"""self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim2","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':10}))
 		self.entitiesManager.addEntity(gregngine.Entity({"name" : "slim3","entityRepr" : "slim","pixelSize": self.param['pixelSize'],"scaleMultiplier": self.param['scaleMultiplier'],'x':10,'y':11}))
@@ -797,19 +919,19 @@ class Engine(gregngine.Engine):
 
 	def playerInputMenus(self,inputEvent,inputPressed):
 		
-		inventoryPressed = False
-		pausePressed = False
+		inventoryPressed, skillTreePressed, pausePressed = False, False, False
 
 		for event in inputEvent:
 			if event.type == pygame.KEYDOWN:
 				if event.key==actions["inventory"]:
 					inventoryPressed = True
+				if event.key==actions["skillTree"]:
+					skillTreePressed = True
 				if event.key==actions["pause"]:
 					pausePressed = True
 
 		# inventory code
-		if inventoryPressed:
-			#self.player.inventory()
+		if inventoryPressed and not self.player.skillTree.isOpen:
 			if not self.player.inventory.isOpen:
 				self.player.inventory.isOpen = True
 				self.currentHUD = 'inventory'
@@ -820,6 +942,20 @@ class Engine(gregngine.Engine):
 		if self.player.inventory.isOpen and self.currentHUD != 'inventory':
 			self.currentHUD = 'inventory'
 		if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
+			self.currentHUD = 'main'
+		
+		# skillTree code
+		if skillTreePressed and not self.player.inventory.isOpen:
+			if not self.player.skillTree.isOpen:
+				self.player.skillTree.isOpen = True
+				self.currentHUD = 'skillTree'
+			else:
+				self.player.skillTree.isOpen = False
+				self.currentHUD = 'main'
+
+		if self.player.skillTree.isOpen and self.currentHUD != 'skillTree':
+			self.currentHUD = 'skillTree'
+		if not self.player.skillTree.isOpen and self.currentHUD == 'skillTree':
 			self.currentHUD = 'main'
 
 		# pause menu code
