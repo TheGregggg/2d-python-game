@@ -149,15 +149,45 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 	def btnSave(self):
 		with open(self.engine.savePath + '/data.save', 'wb') as f:
 			data = {}
-			#data['entityManager'] = self.engine.entitiesManager
+			
 			data['playerPos'] = (self.engine.player.x,self.engine.player.y)
 			data['playerOrientation'] = self.engine.player.animator.lastAnimation
-			"""data['playerInv'] = {}
-			data['playerInv']['hands'] = self.engine.player.inventory.hands.data['name']
+
+			data['playerInv'] = {}
+			data['playerInv']['hands'] = None if self.engine.player.inventory.hands is None else self.engine.player.inventory.hands.data['name']
 			data['playerInv']['handsStack'] = self.engine.player.inventory.handsStack
-			data['playerInv']['hands'] = self.engine.player.inventory.hands.data['name']
-			data['playerInv']['handsStack'] = self.engine.player.inventory.handsStack"""
+			data['playerInv']['slots'] = []
+			for row in self.engine.player.inventory.slots:
+				r = []
+				for col in row:
+					if col is not None:
+						r.append(col.data['name'])
+					else:
+						r.append(None)
+				data['playerInv']['slots'].append(r)
+
+			data['playerInv']['stacks'] = self.engine.player.inventory.stacks
 			data['playerData'] = self.engine.player.data
+			data['playerData']['skillTree']['skills'] = self.engine.player.skillTree.skills
+
+			data['entities'] = []
+			for entitie in self.engine.entitiesManager.entities:
+				dico = {}
+				if 'entityRepr' in entitie.param and entitie.param['entityRepr'] == 'player':
+					continue 
+
+				if 'entityRepr' in entitie.param and entitie.param['entityRepr'] != 'player':
+					dico['type'] = 'entitie'
+					dico['repr'] = entitie.param['entityRepr']
+					dico['stats'] = entitie.stats
+
+				elif 'itemRepr' in entitie.param:
+					dico['type'] = 'item'
+					dico['repr'] = entitie.param['itemRepr']
+
+				dico['x'], dico['y'] = entitie.x, entitie.y
+				data['entities'].append(dico)
+
 			pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
 		print('Save')
@@ -912,8 +942,10 @@ class Engine(gregngine.Engine):
 		self.rezizeSprites()
 
 		savesLoaded = self.loadSaves()
+		#savesLoaded = False
 		
 		if not savesLoaded:
+			print('load init')
 			playerParam = {
 				"name" : 'player',
 				"entityRepr" : 'player',
@@ -927,13 +959,12 @@ class Engine(gregngine.Engine):
 
 			self.entitiesManager.addEntity(self.player)
 
-			sword = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
-			mace  = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
-			bread  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+			sword   = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
+			mace    = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
+			bread   = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
 			bread2  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
 			bread3  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
 
-			self.entitiesManager.addEntity(self.player)
 			self.entitiesManager.addEntity(sword)
 			self.entitiesManager.addEntity(bread)
 			self.entitiesManager.addEntity(bread2)
@@ -967,9 +998,56 @@ class Engine(gregngine.Engine):
 			self.player.camera = self.mainCamera
 			self.mainCamera.setPos(0,0)
 
+			self.player.data = data['playerData']
+			self.player.stats = self.player.data['stats']
+			self.player.skillTree.skills = self.player.data['skillTree']['skills']
+			self.player.applyNewStats()
+			self.player.applyExpFromLevel()
+
+			self.player.inventory.hands = None if data['playerInv']['hands'] is None else Item({'itemRepr': data['playerInv']['hands'], "engine": self})
+			self.player.inventory.handsStack = data['playerInv']['handsStack']
+
+			self.player.inventory.slots = []
+			for row in data['playerInv']['slots']:
+				r = []
+				for col in row:
+					if col is not None:
+						r.append(Item({'itemRepr': col, "engine": self}))
+					else:
+						r.append(None)
+				self.player.inventory.slots.append(r)
+
+			self.player.inventory.stacks = data['playerInv']['stacks']
+
 			self.player.animator.lastAnimation = data['playerOrientation']
 			self.player.animator.animation = data['playerOrientation']
 			self.entitiesManager.addEntity(self.player)
+
+			namesUsed = []
+			for entitie in data['entities']:
+				param = {
+					"engine": self,
+					"x": entitie['x'],
+					"y": entitie['y']
+				}
+				ent = None
+				if entitie['type'] == 'entitie':
+					name = f"{entitie['repr']}-{gFunction.generateRandomString(10)}"
+					while name in namesUsed:
+						name = f"{entitie['repr']}-{gFunction.generateRandomString(10)}"
+					namesUsed.append(name)
+
+					param["name"] = name
+					param["entityRepr"] = entitie['repr']
+					ent = Entity(param)
+					ent.stats = entitie['stats']
+
+				if entitie['type'] == 'item':
+					param["itemRepr"] = entitie['repr']
+					param["isGrounded"] = True
+					ent = Item(param)
+					
+				self.entitiesManager.addEntity(ent)
 
 		print('data loaded')
 		return True

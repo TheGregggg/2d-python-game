@@ -49,6 +49,11 @@ But final : avoir battu les 5 bosses du jeu
  - gestion drop quand monstre meurt
  - menu player utiliser points (arbre compétences)
  - modification des stats du joueur en fonctions de l'arbre de compétences
+ - systeme sauvegarde
+   - player pos
+   - player inventaire
+   - player competences
+   
 
 ## Dossiers:
  - gregngine : dossier moteur de jeu perso
@@ -72,6 +77,8 @@ But final : avoir battu les 5 bosses du jeu
     - monté de niveau son
     - ambiance sonore
     
+ - regler bug menus
+ - gestion de la mort
  - ajouter items 
  - ajouter armes
  - ajouter monstres

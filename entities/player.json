@@ -72,7 +72,7 @@
                 "name": "attack",
                 "displayName": "Attack",
                 "statToModify": "atkBaseDamage",
-                "steps": 15,
+                "steps": 0,
                 "maxSteps": 30,
                 "statPerStep": {
                     "type": "int",

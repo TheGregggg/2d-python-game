@@ -1,4 +1,5 @@
 from pygame import *
+import random
 
 def normalize(x,y):
     if x != 0 and y != 0:
@@ -35,3 +36,25 @@ def createRectWithRoundCorner(left, top, width, height,radius):
     ]
 
     return (rects,circles)
+
+def generateRandomString(length):
+    """
+    abc - 97 -> 123
+    ABC - 65 -> 90
+    012 - 48 -> 57
+    """
+    string = ''
+    for i in range(length):
+        nbr = random.randint(0,61)
+        if nbr < 10:
+            nbr += 48
+        elif nbr >= 10 and nbr < 36:
+            nbr += 55
+        elif nbr >= 36:
+            nbr += 61
+        string += chr(nbr)
+    
+    return string
+
+if __name__ == '__main__':
+    print(generateRandomString(10))
