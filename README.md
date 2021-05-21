@@ -53,6 +53,7 @@ But final : avoir battu les 5 bosses du jeu
    - player pos
    - player inventaire
    - player competences
+   - entité
    
 
 ## Dossiers:
@@ -77,17 +78,11 @@ But final : avoir battu les 5 bosses du jeu
     - monté de niveau son
     - ambiance sonore
     
- - regler bug menus
  - gestion de la mort
  - ajouter items 
  - ajouter armes
  - ajouter monstres
  - npc pour acheter objects
- - systeme sauvegarde
-    - save entitées present au format json 
-    - save player format json
-    - load -> utiliser c'est fichier de sauvegarde apres les fichiers d'init (present dans ./entities) pour ensuite les overwrite avec les éléments sauvegardés
-
  - donjons infini
  - systeme quetes
 

@@ -941,8 +941,8 @@ class Engine(gregngine.Engine):
 
 		self.rezizeSprites()
 
-		savesLoaded = self.loadSaves()
-		#savesLoaded = False
+		#savesLoaded = self.loadSaves()
+		savesLoaded = False
 		
 		if not savesLoaded:
 			print('load init')
@@ -1158,43 +1158,44 @@ class Engine(gregngine.Engine):
 				if event.key==actions["pause"]:
 					pausePressed = True
 
+		self.currentHUD = 'main'
+
 		# inventory code
 		if inventoryPressed and not self.player.skillTree.isOpen:
 			if not self.player.inventory.isOpen:
 				self.player.inventory.isOpen = True
-				self.currentHUD = 'inventory'
 			else:
 				self.player.inventory.isOpen = False
-				self.currentHUD = 'main'
-
-		if self.player.inventory.isOpen and self.currentHUD != 'inventory':
-			self.currentHUD = 'inventory'
-		if not self.player.inventory.isOpen and self.currentHUD == 'inventory':
-			self.currentHUD = 'main'
 		
 		# skillTree code
 		if skillTreePressed and not self.player.inventory.isOpen:
 			if not self.player.skillTree.isOpen:
 				self.player.skillTree.isOpen = True
-				self.currentHUD = 'skillTree'
 			else:
 				self.player.skillTree.isOpen = False
-				self.currentHUD = 'main'
 
-		if self.player.skillTree.isOpen and self.currentHUD != 'skillTree':
+		if self.player.inventory.isOpen:
+			self.currentHUD = 'inventory'
+
+		if self.player.skillTree.isOpen:
 			self.currentHUD = 'skillTree'
-		if not self.player.skillTree.isOpen and self.currentHUD == 'skillTree':
-			self.currentHUD = 'main'
+
+		if self.HUDMenuManager.huds['pauseMenu']['isOpen']:
+			self.currentHUD = 'pauseMenu'
 
 		# pause menu code
 		if pausePressed:
-			#self.player.inventory()
-			if not self.HUDMenuManager.huds['pauseMenu']['isOpen']:
-				self.HUDMenuManager.huds['pauseMenu']['isOpen'] = True
-				self.currentHUD = 'pauseMenu'
+			if self.currentHUD in ['inventory','skillTree']:
+				self.player.inventory.isOpen = False
+				self.player.skillTree.isOpen = False
+				
 			else:
-				self.HUDMenuManager.huds['pauseMenu']['isOpen'] = False
-				self.currentHUD = 'main'
+				if not self.HUDMenuManager.huds['pauseMenu']['isOpen']:
+					self.HUDMenuManager.huds['pauseMenu']['isOpen'] = True
+					self.currentHUD = 'pauseMenu'
+				else:
+					self.HUDMenuManager.huds['pauseMenu']['isOpen'] = False
+					self.currentHUD = 'main'
 
 	def applyDamages(self):
 		for entity in self.entitiesManager.visibleEntities:
