@@ -54,6 +54,7 @@ But final : avoir battu les 5 bosses du jeu
    - player inventaire
    - player competences
    - entité
+ - menu démarrer 
    
 
 ## Dossiers:
@@ -65,7 +66,7 @@ But final : avoir battu les 5 bosses du jeu
  - pickle5 : dossier contenant la derniere version de pickle pour assurer la compatibilité entre python 3.8 et 3.6
 
 ## Todo:
- - créer menu démarrer 
+
  - ajouter du son
     - deplacement perso
     - attaque

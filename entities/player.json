@@ -82,7 +82,7 @@
             },
             {
                 "name": "atkPerSec",
-                "displayName": "Atk / sec",
+                "displayName": "ATK Speed",
                 "statToModify": "atkPerSec",
                 "steps": 0,
                 "maxSteps": 10,

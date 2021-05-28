@@ -475,10 +475,10 @@ if __name__ == "__main__":
 	engineParameters = {
 		"height" : 800,
 		"width" : 1200,
-		"saves": "saves/saves",
+		"saves": "saves",
 		"pixelSize": 16,
 		"scaleMultiplier": 4,
-		"HudScale": 3,
+		"HudScale": 2,
 		"debug": False
 	}
 

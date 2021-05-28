@@ -36,8 +36,6 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 	def __init__(self,engine,hudScale):
 		super().__init__(engine,hudScale)
 
-		self.pauseMenuIsOpen = False
-
 		self.param = {
 			'margin': 5,
 			'fontSize': 20,
@@ -56,7 +54,23 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', self.param['fontSize']*self.hudScale)
 
 		self.huds = {
-			"startMenu": self.startMenu,
+			"startMenu": {
+				'fonction': self.startMenu,
+				'buttons': [
+					{
+						'text': 'Jouer',
+						'fonction': self.btnPlay
+					},
+					{
+						'text': 'Options',
+						'fonction': self.btnOptions
+					},
+					{
+						'text': 'Quitter',
+						'fonction': self.btnQuit
+					}
+				]
+			},
 			"pauseMenu": {
 				'fonction': self.pauseMenu,
 				'isOpen': False,
@@ -82,7 +96,32 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		}
 	
 	def startMenu(self, passThrough):
-		pass
+		screenWidth, screenHeight = passThrough['window'].get_size()
+		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
+		background.fill((255,255,255))
+		passThrough['window'].blit(background, (0,0))
+
+		scale = self.hudScale
+		
+		imgWidth, imgHeight = self.font.size('h')
+		imgHeight += self.param['padding']['height']*2*scale
+		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
+		top = int(screenHeight - topHeight)
+
+		self.mousePos = pygame.mouse.get_pos()
+
+		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
+
+		for button in self.huds["startMenu"]['buttons']:
+			height = self.drawButton(button,'centered',top,passThrough,btns)
+			top += height*scale
+
+		title = self.font.render('The Legend of Pylda', False, (255, 158, 54))
+		imgLeft = int(passThrough['window'].get_width()/2 - title.get_width()/2) + scale
+		imgTop = 20*screenHeight/100
+		passThrough['window'].blit(title, (imgLeft,imgTop))
+
+		passThrough['window'].blit(btns, (0,0))
 	
 	def pauseMenu(self, passThrough):
 		screenWidth, screenHeight = passThrough['window'].get_size()
@@ -198,6 +237,10 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 	def btnQuit(self):
 		pygame.quit()
 		quit()
+
+	def btnPlay(self):
+		self.engine.currentHUD = 'main'
+		self.engine.loadGame()
 
 class Item():
 	def __init__(self,param):
@@ -930,8 +973,10 @@ class Engine(gregngine.Engine):
 		self.newPixelScale = self.param['newPixelScale']
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
+		self.states['start'] = ['startMenu']
 		self.states['play'] = ['main','inventory','skillTree']
 		self.states['pause'] = ['pauseMenu']
+		self.currentHUD = 'startMenu'
 
 		self.collisionsDistance = 1.5
 		self.collisionsDistance *= self.newPixelScale
@@ -940,39 +985,6 @@ class Engine(gregngine.Engine):
 		self.damagesInfos = []
 
 		self.rezizeSprites()
-
-		#savesLoaded = self.loadSaves()
-		savesLoaded = False
-		
-		if not savesLoaded:
-			print('load init')
-			playerParam = {
-				"name" : 'player',
-				"entityRepr" : 'player',
-				"engine": self,
-				'x':6,
-				'y':6}
-			self.player = Player(playerParam)
-			self.player.initPostParent()
-			self.player.camera = self.mainCamera
-			self.mainCamera.setPos(0,0)
-
-			self.entitiesManager.addEntity(self.player)
-
-			sword   = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
-			mace    = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
-			bread   = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
-			bread2  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
-			bread3  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
-
-			self.entitiesManager.addEntity(sword)
-			self.entitiesManager.addEntity(bread)
-			self.entitiesManager.addEntity(bread2)
-			self.entitiesManager.addEntity(bread3)
-
-			self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
-		
-		self.loadScreenSaves()
 
 	def rezizeSprites(self):
 		for sprite in self.world.sprites:
@@ -1052,6 +1064,40 @@ class Engine(gregngine.Engine):
 		print('data loaded')
 		return True
 
+	def loadGame(self):
+		#savesLoaded = self.loadSaves()
+		savesLoaded = False
+		
+		if not savesLoaded:
+			print('load init')
+			playerParam = {
+				"name" : 'player',
+				"entityRepr" : 'player',
+				"engine": self,
+				'x':6,
+				'y':6}
+			self.player = Player(playerParam)
+			self.player.initPostParent()
+			self.player.camera = self.mainCamera
+			self.mainCamera.setPos(0,0)
+
+			self.entitiesManager.addEntity(self.player)
+
+			sword   = Item({'itemRepr':'normal_sword', "engine": self,'x':10,'y':6,'isGrounded':True})
+			mace    = Item({'itemRepr':'normal_mace' , "engine": self,'x':11,'y':6,'isGrounded':True})
+			bread   = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+			bread2  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+			bread3  = Item({'itemRepr':'bread' , "engine": self,'x':11,'y':7,'isGrounded':True})
+
+			self.entitiesManager.addEntity(sword)
+			self.entitiesManager.addEntity(bread)
+			self.entitiesManager.addEntity(bread2)
+			self.entitiesManager.addEntity(bread3)
+
+			self.entitiesManager.addEntity(Entity({"name" : "slim1","entityRepr" : "slim", "engine": self,'x':9,'y':10}))
+		
+		self.loadScreenSaves()
+
 	def main(self,inputEvent,inputPressed):
 		if self.currentHUD in self.states['play']:
 			self.checkCollision()
@@ -1089,7 +1135,8 @@ class Engine(gregngine.Engine):
 			
 			self.applyDamages()
 		
-		self.playerInputMenus(inputEvent,inputPressed)
+		if self.currentHUD not in self.states['start']:
+			self.playerInputMenus(inputEvent,inputPressed)
 
 	def playerInputMouvement(self,inputEvent,inputPressed):
 		playerSpeedY,playerSpeedX = 0, 0

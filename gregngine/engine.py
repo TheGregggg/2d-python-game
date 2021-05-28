@@ -391,7 +391,8 @@ class Engine(object):
 		self.param['height'] = h
 		self.param['width'] = w
 		self.calculatesTilesOnAxis()
-		self.player.setCameraOffset(self.tilesOnX-1,self.tilesOnY-1)
+		if hasattr(self, 'player'):
+			self.player.setCameraOffset(self.tilesOnX-1,self.tilesOnY-1)
 
 		if saveData:
 			with shelve.open(self.savePath + "/saves") as data:

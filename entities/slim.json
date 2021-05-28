@@ -10,13 +10,8 @@
         "drops":[
             {
                 "rate": 100,
-                "loot": "normal_sword"
-            },
-            {
-                "rate": 100,
-                "loot": "normal_mace"
+                "loot": "bread"
             }
-
         ]
     },
     "collider":{
