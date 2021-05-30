@@ -18,6 +18,8 @@ But final : avoir battu les 5 bosses du jeu
     - sprinter -> maj gauche
     - attaque -> espace
     - inventaire -> i (ou click sur la 'main' en haut a droit)
+    - arbre de compétences -> tab
+    - menu pause -> echape
 
 ## Fonctionalité:
  - affichage moderne du jeu (fenetre réglable)
