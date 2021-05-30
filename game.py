@@ -1065,8 +1065,8 @@ class Engine(gregngine.Engine):
 		return True
 
 	def loadGame(self):
-		#savesLoaded = self.loadSaves()
-		savesLoaded = False
+		savesLoaded = self.loadSaves()
+		#savesLoaded = False
 		
 		if not savesLoaded:
 			print('load init')
