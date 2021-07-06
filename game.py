@@ -96,10 +96,8 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		}
 	
 	def startMenu(self, passThrough):
-		screenWidth, screenHeight = passThrough['window'].get_size()
-		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
-		background.fill((255,255,255))
-		passThrough['window'].blit(background, (0,0))
+		screenWidth, screenHeight = self.engine.HUDSurface.get_size()
+		self.engine.window.fill((255,255,255))
 
 		scale = self.hudScale
 		
@@ -108,7 +106,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
 		top = int(screenHeight - topHeight)
 
-		self.mousePos = pygame.mouse.get_pos()
+		self.mousePos = passThrough['mousePos']
 
 		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 
@@ -117,18 +115,18 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			top += height*scale
 
 		title = self.font.render('The Legend of Pylda', False, (255, 158, 54))
-		imgLeft = int(passThrough['window'].get_width()/2 - title.get_width()/2) + scale
+		imgLeft = int(self.engine.window.get_width()/2 - title.get_width()/2) + scale
 		imgTop = 20*screenHeight/100
-		passThrough['window'].blit(title, (imgLeft,imgTop))
+		self.engine.window.blit(title, (imgLeft,imgTop))
 
-		passThrough['window'].blit(btns, (0,0))
+		self.engine.window.blit(btns, self.engine.renderedDisplayOffsets)
 	
 	def pauseMenu(self, passThrough):
-		screenWidth, screenHeight = passThrough['window'].get_size()
+		screenWidth, screenHeight = self.engine.HUDSurface.get_size()
 
 		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 		background.fill((0,0,0,75))
-		passThrough['window'].blit(background, (0,0))
+		self.engine.window.blit(background, self.engine.renderedDisplayOffsets)
 
 		scale = self.hudScale
 		
@@ -137,7 +135,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
 		top = int(screenHeight/2 - topHeight/2)
 
-		self.mousePos = pygame.mouse.get_pos()
+		self.mousePos = passThrough['mousePos']
 
 		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 
@@ -145,7 +143,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			height = self.drawButton(button,'centered',top,passThrough,btns)
 			top += height*scale
 
-		passThrough['window'].blit(btns, (0,0))
+		self.engine.window.blit(btns,  self.engine.renderedDisplayOffsets)
 
 	def drawButton(self,button,rectLeft,rectTop,passThrough,btns):
 		scale = self.hudScale
@@ -255,8 +253,6 @@ class Item():
 
 		self.engine = param['engine']
 		self.param["pixelSize"] = self.engine.param["pixelSize"]
-		self.param["scaleMultiplier"] = self.engine.param["scaleMultiplier"]
-		self.param['newPixelScale'] = self.engine.param["newPixelScale"]
 
 		if not 'x' in param:
 			self.isGrounded = False
@@ -285,7 +281,7 @@ class Item():
 		location = (self.tilemapSettings['start'][0], self.tilemapSettings['start'][1])
 		self.sprite = self.tilemap.subsurface(pygame.Rect(location, self.tilemapSettings['size']))
 
-		itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
+		itemScale = (int(self.param['pixelSize']*tilemap['scaling']/tilemap['ratio']),int(self.param['pixelSize']*tilemap['scaling']))
 		self.groundSprite = pygame.transform.scale(self.sprite,itemScale)
 
 	def drawSprite(self,scale,coords,passThrough):
@@ -295,14 +291,14 @@ class Item():
 		if self.data['itemType'] == 'weapon':
 			sprite = pygame.transform.rotate(sprite,-45)
 
-		passThrough['window'].blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
+		self.engine.HUDSurface.blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
 
 	def draw(self, xStart, yStart, passThrough):
 		if self.isGrounded:
 			xToDraw = self.x - xStart 
 			yToDraw = self.y - yStart 
 
-			passThrough['window'].blit(self.groundSprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale'] - self.groundSprite.get_height()/4))
+			self.engine.renderedSurface.blit(self.sprite , (xToDraw*self.param['pixelSize'], yToDraw*self.param['pixelSize'] - self.groundSprite.get_height()/4))
 
 	def move(self, dtime):
 		pass
@@ -321,12 +317,13 @@ class Inventory():
 		self.handsStack = 0
 		self.isOpen = False
 		self.player = player
+		self.engine = self.player.engine
 
 		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 10*self.player.engine.param['HudScale'])
 	
 	def drawHud(self,passThrough):
 		scale = passThrough['HudScale']
-		width, height = passThrough['window'].get_size()
+		width, height = self.engine.HUDSurface.get_size()
 		coords = {
 			'right': 8,
 			'top': 8,
@@ -348,7 +345,8 @@ class Inventory():
 			pygame.draw.circle(case,(0,0,0,transparency),circle,radius)
 
 		if passThrough['currentHUD'] == 'main':
-			passThrough['window'].blit(case, (coords['left'], coords['top']))
+			
+			self.engine.HUDSurface.blit(case, (coords['left'], coords['top']))
 
 			if self.hands is not None:
 				self.hands.drawSprite(scale,coords, passThrough)
@@ -357,7 +355,7 @@ class Inventory():
 			if self.handsStack > 1:
 				img = self.font.render(str(self.handsStack), False, (255, 255, 255))
 				imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-				passThrough['window'].blit(img,(imgLeft, imgTop))
+				self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 			if passThrough['mousePosClick'] is not None and Rect((coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
 				self.isOpen = True
@@ -399,25 +397,25 @@ class Inventory():
 					cases.append({'place':(int(placeLeft),int(placeTop)),'x_value':entity,'ground':True})
 
 			for caseInfo in cases:
-				passThrough['window'].blit(case,caseInfo['place'])
+				self.engine.HUDSurface.blit(case,caseInfo['place'])
 				
 				if caseInfo['x_value'] is not None:
 					coords['left'],coords['top'] = caseInfo['place']
 					caseInfo['x_value'].drawSprite(scale,coords,passThrough)
 					img = self.font.render(caseInfo['x_value'].data['displayedName'], False, (255, 255, 255))
 					imgLeft, imgTop = coords['left'] + (case.get_width() - img.get_width())/2, coords['top'] + case.get_height() - scale
-					passThrough['window'].blit(img,(imgLeft, imgTop))
+					self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 					if 'y' in caseInfo:
 						if self.stacks[caseInfo['y']][caseInfo['x']] > 1:
 							img = self.font.render(str(self.stacks[caseInfo['y']][caseInfo['x']]), False, (255, 255, 255))
 							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-							passThrough['window'].blit(img,(imgLeft, imgTop))
+							self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 					elif caseInfo['x_value'] == self.hands:
 						if self.handsStack > 1:
 							img = self.font.render(str(self.handsStack), False, (255, 255, 255))
 							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-							passThrough['window'].blit(img,(imgLeft, imgTop))
+							self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 				if passThrough['mousePosClick'] is not None:
 					if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
@@ -473,6 +471,7 @@ class SkillTree():
 		self.skills = self.player.data['skillTree']['skills']
 		self.isOpen = False
 		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 20*self.player.engine.param['HudScale'])
+		self.engine = self.player.engine
 	
 	def drawHud(self,passThrough):
 		if passThrough['currentHUD'] not in ['skillTree']:
@@ -483,7 +482,7 @@ class SkillTree():
 			
 	def skillTree(self,passThrough):
 		scale = passThrough['HudScale']
-		width, height = passThrough['window'].get_size()
+		width, height = self.engine.HUDSurface.get_size()
 
 		percentageHeight = 1.2
 		percentageWidth = 1.2
@@ -506,7 +505,7 @@ class SkillTree():
 		for circle in circles:
 			pygame.draw.circle(popup,(0,0,0,transparency),circle,radius)
 
-		passThrough['window'].blit(popup, (coords['left'], coords['top']))
+		self.engine.HUDSurface.blit(popup, (coords['left'], coords['top']))
 		
 		# logic for first part -> skills and skills bar
 		#### logic for left part -> skills name
@@ -518,15 +517,15 @@ class SkillTree():
 		img = self.font.render("Skill tree", False, (255, 242, 0))
 		imgShadow = self.font.render("Skill tree", False, (255,200,0))
 		imgLeft, imgTop = coords['left'] + marginTop, coords['top']  + marginTop/1.5
-		passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
-		passThrough['window'].blit(img,(imgLeft, imgTop))
+		self.engine.HUDSurface.blit(imgShadow,(imgLeft+scale, imgTop+scale))
+		self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 		if self.player.stats['points'] > 0:
 			img = self.font.render(f"{self.player.stats['points']} points", False, (255, 242, 0))
 			imgShadow = self.font.render(f"{self.player.stats['points']} points", False, (255,200,0))
 			imgLeft, imgTop = coords['left'] + coords['width'] - img.get_width() - marginTop, coords['top']  + marginTop/1.5
-			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
-			passThrough['window'].blit(img,(imgLeft, imgTop))
+			self.engine.HUDSurface.blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 		longerSkillName = 0
 		for i in range(len(self.skills)):
@@ -536,8 +535,8 @@ class SkillTree():
 			imgShadow = self.font.render(self.skills[i]['displayName'], False, (255,200,0))
 			imgLeft = coords['left'] + marginTop
 			imgTop = coords['top'] + (i+1)*heightOfEachPart + marginTop/1.5
-			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
-			passThrough['window'].blit(img,(imgLeft, imgTop))
+			self.engine.HUDSurface.blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 			
 		#### logic for right part -> skills bars
 
@@ -551,27 +550,27 @@ class SkillTree():
 			top = (i+1)*heightOfEachPart + coords['top'] + marginTop/1.5
 
 			collisionRect = Rect((barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 ,top),(int(barCoord['btnWidth']),int(barCoord['btnWidth'])))
-			isHover = collisionRect.collidepoint(pygame.mouse.get_pos())
+			isHover = collisionRect.collidepoint(passThrough['mousePos'])
 			btnColor = (133, 125, 66) if isHover else (255, 147, 38)
 			btnColor = btnColor if self.player.stats['points'] > 0 and self.skills[i]['steps'] < self.skills[i]['maxSteps'] else (133, 125, 66)
 
 			rects, circles = gFunction.createRectWithRoundCorner(barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 ,top,int(barCoord['btnWidth']),int(barCoord['btnWidth']),barRadius)
 			for rect in rects:
-				pygame.draw.rect(passThrough['window'],btnColor,Rect(rect))
+				pygame.draw.rect(self.engine.HUDSurface,btnColor,Rect(rect))
 			for circle in circles:
-				pygame.draw.circle(passThrough['window'],btnColor,circle,barRadius)
+				pygame.draw.circle(self.engine.HUDSurface,btnColor,circle,barRadius)
 
 			img = self.font.render("+", False, (255, 255, 255))
-			passThrough['window'].blit(img,(barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 + img.get_width()/2 + scale/2, top - scale))
+			self.engine.HUDSurface.blit(img,(barCoord['left'] - barCoord['btnWidth'] - marginTop/1.5 + img.get_width()/2 + scale/2, top - scale))
 
 			leftOfEachPoly = (barCoord['width'] - barRadius) /self.skills[i]['maxSteps']
 			barStepsSteep = leftOfEachPoly - 2*scale if leftOfEachPoly - 2*scale < 10*scale else 10*scale
 			for step in range(self.skills[i]['maxSteps']):
 				color = (255, 147, 38) if step+1 <= self.skills[i]['steps'] else (133, 125, 66)
 				if step == 0:
-					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + barRadius,top + barRadius),barRadius,draw_top_left=True)
-					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + barRadius,top + img.get_height() - barRadius),barRadius,draw_bottom_left=True)
-					pygame.draw.rect(passThrough['window'],color,Rect(barCoord['left'] + step*leftOfEachPoly, top + barRadius, barRadius, img.get_height() - 2*barRadius))
+					pygame.draw.circle(self.engine.HUDSurface,color,(barCoord['left'] + barRadius,top + barRadius),barRadius,draw_top_left=True)
+					pygame.draw.circle(self.engine.HUDSurface,color,(barCoord['left'] + barRadius,top + img.get_height() - barRadius),barRadius,draw_bottom_left=True)
+					pygame.draw.rect(self.engine.HUDSurface,color,Rect(barCoord['left'] + step*leftOfEachPoly, top + barRadius, barRadius, img.get_height() - 2*barRadius))
 
 					points = [
 						(barCoord['left'] + step*leftOfEachPoly + barRadius, top),
@@ -580,11 +579,11 @@ class SkillTree():
 						(barCoord['left'] + step*leftOfEachPoly + barRadius, top+img.get_height())
 					]
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
-					pygame.draw.polygon(passThrough['window'], color, points)		
+					pygame.draw.polygon(self.engine.HUDSurface, color, points)		
 				elif step == self.skills[i]['maxSteps']-1:
-					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + barRadius),barRadius,draw_top_right=True)
-					pygame.draw.circle(passThrough['window'],color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + img.get_height() - barRadius),barRadius,draw_bottom_right=True)
-					pygame.draw.rect(passThrough['window'],color,Rect(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top + barRadius, barRadius, img.get_height() - 2*barRadius))
+					pygame.draw.circle(self.engine.HUDSurface,color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + barRadius),barRadius,draw_top_right=True)
+					pygame.draw.circle(self.engine.HUDSurface,color,(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale,top + img.get_height() - barRadius),barRadius,draw_bottom_right=True)
+					pygame.draw.rect(self.engine.HUDSurface,color,Rect(barCoord['left'] + step*leftOfEachPoly + leftOfEachPoly - 2*scale, top + barRadius, barRadius, img.get_height() - 2*barRadius))
 
 					points = [
 						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep, top),
@@ -593,7 +592,7 @@ class SkillTree():
 						(barCoord['left'] + step*leftOfEachPoly, top+img.get_height())
 					]
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
-					pygame.draw.polygon(passThrough['window'], color, points)
+					pygame.draw.polygon(self.engine.HUDSurface, color, points)
 				else:
 					points = [
 						(barCoord['left'] + step*leftOfEachPoly + barStepsSteep, top),
@@ -602,7 +601,7 @@ class SkillTree():
 						(barCoord['left'] + step*leftOfEachPoly, top+img.get_height())
 					]
 					#Rect(barCoord['left'] + step*leftOfEachPoly, top, leftOfEachPoly-scale, img.get_height())
-					pygame.draw.polygon(passThrough['window'], color, points)
+					pygame.draw.polygon(self.engine.HUDSurface, color, points)
 
 			# handle clicks requests
 			if passThrough['mousePosClick'] is not None:
@@ -797,21 +796,21 @@ class Player(gregngine.Entity):
 						Rect(rectCoords[0]['width']*scale,(rectCoords[1]['top']-Radius)*scale,Radius*scale,Radius*scale)) #little concave circle
 					pygame.draw.circle(case,(0,0,0,0),((rectCoords[0]['width']+Radius)*scale,(rectCoords[1]['top']-Radius)*scale),Radius*scale,draw_bottom_left=True) #little concave circle mask
 			
-			passThrough['window'].blit(case, (left*scale, top*scale))
+			self.engine.HUDSurface.blit(case, (left*scale, top*scale))
 
 			# render level text
 			img = self.bigFont.render(str(self.stats['level']), False, (255, 242, 0))
 			imgLeft = int(left*scale + rectCoords[0]['width']*scale/2 - img.get_width()/2) + scale
 			imgTop = int(top*scale + rectCoords[1]['top']*scale/2 - img.get_height()/2) + scale
-			passThrough['window'].blit(img,(imgLeft, imgTop))
+			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 			# render money text
 			img = self.smallFont.render(str(self.stats['money']) + ' $', False, (255, 242, 0))
 			imgShadow = self.smallFont.render(str(self.stats['money']) + ' $', False, (0, 0, 0, 0.5))
 			imgLeft = int(left*scale + rectCoords[1]['width']*scale - img.get_width()) + scale
 			imgTop = int(top*scale + rectCoords[7]['top']*scale + img.get_height()/2 )
-			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
-			passThrough['window'].blit(img,(imgLeft, imgTop))
+			self.engine.HUDSurface.blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
 
 	def drawHudBar(self,value,max,color,passThrough,coords):
 		"""
@@ -827,10 +826,10 @@ class Player(gregngine.Entity):
 		x = ((value * 100) / max) /100 if value > 0 else 0
 
 		rect = gFunction.createRectOutlined(x, coords['left']*scale, coords['top']*scale, coords['width']*scale, coords['height']*scale, coords['outline']*scale)
-		pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+		pygame.draw.rect(self.engine.HUDSurface,(0,0,0),rect[0])
 
 		if x > 0:
-			pygame.draw.rect(passThrough['window'],color,rect[1])
+			pygame.draw.rect(self.engine.HUDSurface,color,rect[1])
 
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
@@ -845,6 +844,7 @@ class Player(gregngine.Entity):
 			x,y = x*self.stats["normalSpeed"],y*self.stats["normalSpeed"]
 
 		x,y = gFunction.normalize(x * dTime * 0.001,y * dTime * 0.001)
+		x,y = round(x,3), round(y,3)
 
 		self.x += x
 		self.y += y
@@ -900,13 +900,13 @@ class Player(gregngine.Entity):
 			attackRect = self.rect
 
 			if lookingTo == 'left':
-				attackRect.left -= self.param['newPixelScale']
+				attackRect.left -= self.param['pixelSize']
 			elif lookingTo == 'right':
-				attackRect.left += self.param['newPixelScale']
+				attackRect.left += self.param['pixelSize']
 			elif lookingTo == 'top':
-				attackRect.top -= self.param['newPixelScale']
+				attackRect.top -= self.param['pixelSize']
 			elif lookingTo == 'bottom':
-				attackRect.top += self.param['newPixelScale']
+				attackRect.top += self.param['pixelSize']
 
 			self.isAttacking = True
 
@@ -929,16 +929,16 @@ class Player(gregngine.Entity):
 
 			elif self.inventory.hands is not None:
 				currentStep = self.data['animation']['attack']['steps'][self.atkAnim['lastStep']]
-				animationSurface = pygame.Surface((int(3*self.param['newPixelScale']),int(3*self.param['newPixelScale'])), pygame.SRCALPHA)
+				animationSurface = pygame.Surface((int(3*self.param['pixelSize']),int(3*self.param['pixelSize'])), pygame.SRCALPHA)
 
 				sprite = self.inventory.hands.sprite
 				tilemap = self.inventory.hands.data['tilemap']
 
-				itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
+				itemScale = (int(self.param['pixelSize']*tilemap['scaling']/tilemap['ratio']),int(self.param['pixelSize']*tilemap['scaling']))
 				sprite = pygame.transform.scale(sprite.convert_alpha(),(itemScale))
 				sprite = pygame.transform.rotate(sprite,currentStep['rotation'])
 
-				animationSurface.blit(sprite,(currentStep['y'],currentStep['x']))
+				animationSurface.blit(sprite,((currentStep['x']/50) * self.param['pixelSize'],(currentStep['y']/50) * self.param['pixelSize']))
 				if self.atkLookingTo == 'top':
 					animationSurface = pygame.transform.rotate(animationSurface,90)
 				elif self.atkLookingTo == 'bottom':
@@ -970,7 +970,6 @@ class Engine(gregngine.Engine):
 
 		self.world = world
 		self.world.loadSprites('overworld',self.param['pixelSize'])
-		self.newPixelScale = self.param['newPixelScale']
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
 		self.states['start'] = ['startMenu']
@@ -979,12 +978,12 @@ class Engine(gregngine.Engine):
 		self.currentHUD = 'startMenu'
 
 		self.collisionsDistance = 1.5
-		self.collisionsDistance *= self.newPixelScale
+		self.collisionsDistance *= self.param['pixelSize']
 		self.collisions = {}
 
 		self.damagesInfos = []
 
-		self.rezizeSprites()
+		#self.rezizeSprites()
 
 	def rezizeSprites(self):
 		for sprite in self.world.sprites:
@@ -1008,7 +1007,7 @@ class Engine(gregngine.Engine):
 			self.player = Player(playerParam)
 			self.player.initPostParent()
 			self.player.camera = self.mainCamera
-			self.mainCamera.setPos(0,0)
+			self.mainCamera.setPos(self.player.x,self.player.y)
 
 			self.player.data = data['playerData']
 			self.player.stats = self.player.data['stats']
@@ -1079,7 +1078,7 @@ class Engine(gregngine.Engine):
 			self.player = Player(playerParam)
 			self.player.initPostParent()
 			self.player.camera = self.mainCamera
-			self.mainCamera.setPos(0,0)
+			self.mainCamera.setPos(self.player.x,self.player.y)
 
 			self.entitiesManager.addEntity(self.player)
 
@@ -1256,34 +1255,33 @@ class Engine(gregngine.Engine):
 	def DrawWorld(self):
 		super().DrawWorld()
 
-		widthBy2 = self.param['width']/2
-		heightBy2 = self.param['height']/2
-
 		coords = self.ScreenToWorldCoords
 		for entity in self.entitiesManager.visibleEntities:
 			entity.collisions = {}
 
-		for y_index,y in enumerate(self.world.world[coords['yStart']:coords['yEnd']]):
-			for x_index,x in enumerate(y[coords['xStart']:coords['xEnd']]):
-				coord = ((x_index*self.newPixelScale)-(coords['offx']*self.newPixelScale) , (y_index*self.newPixelScale)-(coords['offy']*self.newPixelScale))
-				
-				wall = self.world.walls[coords['yStart']+y_index][coords['xStart']+x_index]
-				if wall == " ":
-					self.window.blit(self.world.sprites[x], coord)
+		for y_index,y in enumerate(range(coords['yStart'], coords['yEnd'])):
+			for x_index,x in enumerate(range(coords['xStart'], coords['xEnd'])):
+				if 0 <= x < len(self.world.world[0]) and 0 <= y < len(self.world.world): 	
+					coord = ( (x_index - coords['offx'])*self.param['pixelSize'], (y_index - coords['offy'])*self.param['pixelSize'])
+					groundTile = self.world.world[y][x]
+					wallTile = self.world.walls[coords['yStart']+y_index][coords['xStart']+x_index]
 
-				else:
-					self.window.blits(((self.world.sprites[x], coord),(self.world.sprites[wall], coord)))
-					for entity in self.entitiesManager.visibleEntities:
-						if entity.data['type'] != 'item':
-							x,y = entity.x - (coords['xStart'] + coords['offx']),entity.y - (coords['yStart']+coords['offy'])
-							x,y = x*self.param['newPixelScale'], y*self.param['newPixelScale']
-							dist = math.hypot(coord[0]-x, coord[1]-y)
-							if abs(dist) < self.collisionsDistance:
-								if (y_index,x_index) not in self.collisions:
-									entity.collisions[(y_index,x_index)] = coord
-							
-								if self.debugMode == True:
-									pygame.draw.rect(self.window,(255,0,0),Rect(coord,(self.newPixelScale,self.newPixelScale)))
+					if wallTile == " ":
+						self.renderedSurface.blit(self.world.sprites[groundTile], coord)
+
+					else:
+						self.renderedSurface.blits(((self.world.sprites[groundTile], coord),(self.world.sprites[wallTile], coord)))
+						for entity in self.entitiesManager.visibleEntities:
+							if entity.data['type'] != 'item':
+								xEnt,yEnt = entity.x - (coords['xStart'] + coords['offx']),entity.y - (coords['yStart']+coords['offy'])
+								xEnt,yEnt = xEnt*self.param['pixelSize'], yEnt*self.param['pixelSize']
+								dist = math.hypot(coord[0]-xEnt, coord[1]-yEnt)
+								if abs(dist) < self.collisionsDistance:
+									if (y_index,x_index) not in self.collisions:
+										entity.collisions[(y_index,x_index)] = coord
+								
+									if self.debugMode == True:
+										pygame.draw.rect(self.renderedSurface,(255,0,0),Rect(coord,(self.param['pixelSize'],self.param['pixelSize'])))
 		
 	def checkCollision(self):
 		ents = [ent for ent in self.entitiesManager.visibleEntities if ent.data['type'] != 'item']
@@ -1348,7 +1346,7 @@ class Engine(gregngine.Engine):
 			}
 
 			for collisions in Entity.collisions.keys():
-				rect = Rect(Entity.collisions[collisions],(self.newPixelScale,self.newPixelScale))
+				rect = Rect(Entity.collisions[collisions],(self.param['pixelSize'],self.param['pixelSize']))
 
 				for point in points.keys():
 					if points[point]["value"] == 0:
