@@ -390,7 +390,6 @@ class Engine(object):
 		self.renderedWidthAndHeight = (width, height)
 		self.renderedWidthAndHeightRatios = (width/(self.param['aspectRatio'][0]*self.param["pixelSize"]) ,height/(self.param['aspectRatio'][1]*self.param["pixelSize"]))
 		self.renderedDisplayOffsets = (xOffsets, yOffsets)
-		print(self.renderedWidthAndHeightRatios)
 
 	def loadSaves(self):
 		with shelve.open(self.savePath + "/saves") as data:

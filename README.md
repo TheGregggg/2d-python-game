@@ -55,6 +55,7 @@ But final : avoir battu les 5 bosses du jeu
    - player competences
    - entité
  - menu démarrer 
+ - optimization world renderer
    
 
 ## Dossiers:
@@ -66,6 +67,9 @@ But final : avoir battu les 5 bosses du jeu
  - pickle5 : dossier contenant la derniere version de pickle pour assurer la compatibilité entre python 3.8 et 3.6
 
 ## Todo:
+ - polishing
+ - particles system
+ - custom collider for blocs
 
  - ajouter du son
     - deplacement perso
@@ -87,8 +91,6 @@ But final : avoir battu les 5 bosses du jeu
  - donjons infini
  - systeme quetes
 
-
- - optimization world renderer
  - refactor attaque animation pour entitées et player
  - multi-threading
 
