@@ -9,7 +9,7 @@ import gregngine.functions as gFunction
 import gregngine.engine as gregngine
 
 class ParticleSystem():
-    def __init__(self, engine, color, duration, power, startSize, sizeReduction, emitingRate, emitingRadius, speed, outline=None,outlineColor=(0,0,0), gravity=0):
+    def __init__(self, engine, color, duration, power, startSize, sizeReduction, emitingRate, emitingRadius, speed, outline=None,outlineColor=(0,0,0), shape='circle', offSetAngle=180, gravity=0):
         self.engine = engine
         self.color = color
         self.duration = duration
@@ -20,6 +20,8 @@ class ParticleSystem():
         self.emitingRadius = emitingRadius
         self.gravity = gravity
         self.speed = speed
+        self.shape = shape
+        self.offSetAngle = offSetAngle
 
         self.outline = outline
         self.outlineColor = outline
@@ -36,24 +38,30 @@ class ParticleSystem():
 
         for particle in self.particles:
             # draw particles
-            if self.outline is not None:
-                pygame.draw.circle(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size']+self.outline)
-            pygame.draw.circle(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size'])
+            if self.shape == 'circle':
+                if self.outline is not None:
+                    pygame.draw.circle(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size']+self.outline)
+                pygame.draw.circle(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size'])
+            elif self.shape == 'square':
+                if self.outline is not None:
+                    pygame.draw.rect(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0]-self.outline/2, yToDraw+particle['pos'][1]-self.outline/2, particle['size']+self.outline, particle['size']+self.outline))
+                pygame.draw.rect(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1], particle['size'], particle['size']))
 
             # move particles
-            particle['size'] -= self.sizeReduction * dTime
-            if particle['size'] < 0:
-                self.particles.remove(particle)
+            if self.engine.currentHUD in self.engine.states['play']:
+                particle['size'] -= self.sizeReduction * dTime
+                if particle['size'] < 0:
+                    self.particles.remove(particle)
 
-            else:
-                particle['pos'] = (particle['pos'][0] + particle['vel'][0], particle['pos'][1] + particle['vel'][1])
-            
-            particle['vel'][1] += self.gravity
+                else:
+                    particle['pos'] = (particle['pos'][0] + particle['vel'][0], particle['pos'][1] + particle['vel'][1])
+                
+                particle['vel'][1] += self.gravity
 
         if time.time() >= self.lastTimeEmited:    #shoot particles
             self.lastTimeEmited = time.time() + self.emitingRate
             for i in range(self.power):
-                angle = math.radians(random.randint(0, self.emitingRadius) + int(self.emitingRadius/2) + 180)
+                angle = math.radians(random.randint(0, self.emitingRadius) + int(self.emitingRadius/2) + self.offSetAngle)
                 particle = {
                     'size': self.startSize,
                     'pos': [0,0],

@@ -291,9 +291,6 @@ class Entity(object):
 				pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
 				pygame.draw.rect(passThrough['window'],(255,0,0),rect[1])
 
-	def death(self):
-		pass
-
 class EntitiesManager(object):
 	def __init__(self):
 		self.entities = []

@@ -3,7 +3,7 @@
     "width" : 1200,
     "saves": "saves",
     "pixelSize": 16,
-    "scaleMultiplier": 6,
+    "scaleMultiplier": 8,
     "HudScale": 2,
     "debug": false
 }

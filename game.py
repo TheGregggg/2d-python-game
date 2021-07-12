@@ -360,7 +360,7 @@ class Engine(gregngine.Engine):
 			for damagedInfo in self.damagesInfos:
 				if entity.data['type'] in ['monster','player'] and entity != damagedInfo['entity'] and damagedInfo['attackRect'].colliderect(entity.rect):
 					print("Hit " + entity.name, entity.stats['health'])
-					entity.stats['health'] -= damagedInfo['damage']
+					entity.takeDamageOf(damagedInfo['damage'])
 		
 		self.damagesInfos = []
 

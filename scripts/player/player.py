@@ -40,9 +40,9 @@ class Player(gregngine.Entity):
 		self.animator.setFrame()
 
 		self.particles = ParticleSystem(self.engine, color=(255,255,255),
-		duration=10, power=3, startSize=0.6, sizeReduction=0.01,
-		emitingRate=0.25, emitingRadius=90, gravity=0.02, speed=0.6, 
-		outline=1, outlineColor=(0,0,0))
+		duration=10, power=3, startSize=1, sizeReduction=0.01,
+		emitingRate=0.25, emitingRadius=90, gravity=0.01, speed=0.6, 
+		outline=1, outlineColor=(0,0,0), shape='square')
 
 	def applyExpFromLevel(self):
 		expTable = self.data['experienceTable']
@@ -85,6 +85,9 @@ class Player(gregngine.Entity):
 		self.stats['health'] += ammount
 		if self.stats['health'] > self.stats['maxHealth']:
 			self.stats['health'] = self.stats['maxHealth']
+
+	def takeDamageOf(self, damage):
+		self.stats['health'] -= damage
 
 	def drawHud(self, xPos, yPos, passThrough):
 		self.inventory.drawHud(passThrough)
@@ -366,7 +369,7 @@ class Player(gregngine.Entity):
 		coords = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+1.05)*self.param['newPixelScale']))
 		if self.isMoving:
 			self.particles.color = self.engine.window.get_at(coords)
-			self.particles.power = 3
+			self.particles.power = 2
 		else:
 			self.particles.power = 0
 		

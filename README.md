@@ -57,6 +57,7 @@ But final : avoir battu les 5 bosses du jeu
    - player competences
    - entité
  - menu démarrer 
+ - systeme de particules
    
 
 ## Dossiers:
@@ -68,7 +69,7 @@ But final : avoir battu les 5 bosses du jeu
  - pickle5 : dossier contenant la derniere version de pickle pour assurer la compatibilité entre python 3.8 et 3.6
 
 ## Todo:
-   particule systeme
+   
 
    3d son
 
