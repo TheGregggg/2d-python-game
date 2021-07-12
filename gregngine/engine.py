@@ -348,6 +348,8 @@ class Engine(object):
 		"""
 		pygame.init()
 
+		self.font = pygame.font.SysFont("Arial", 18)
+
 		self.param = param
 		self.debugMode = param["debug"]
 
@@ -464,7 +466,7 @@ class Engine(object):
 			self.DrawHUDs()
 
 			pygame.display.update()
-			self.clock.tick(self.clockTick)
+			self.clock.tick()
 
 	def main(self,inputEvent,inputPressed):
 		pass
@@ -488,6 +490,10 @@ class Engine(object):
 
 		for entitie in entities:
 			entitie.draw(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{'debug':self.debugMode,'window':self.window,'isPaused':isPaused})
+		
+		fps = str(int(self.clock.get_fps()))
+		fps_text = self.font.render(fps, 1, (255,255,255))
+		self.window.blit(fps_text, (0, 0))
 	
 	def DrawWorld(self):
 		self.window.fill((0,0,0)) 
