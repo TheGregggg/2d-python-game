@@ -33,6 +33,8 @@ class Engine(gregngine.Engine):
 	def __init__(self, param):
 		super().__init__(param)
 
+		pygame.mouse.set_visible(False)
+
 		self.world = world
 		self.world.loadSprites('overworld',self.param['pixelSize'])
 		self.newPixelScale = self.param['newPixelScale']
@@ -176,8 +178,8 @@ class Engine(gregngine.Engine):
 		print('Save')
 
 	def loadGame(self):
-		#savesLoaded = self.loadSaves()
-		savesLoaded = False
+		savesLoaded = self.loadSaves()
+		#savesLoaded = False
 		
 		if not savesLoaded:
 			print('load init')
@@ -484,6 +486,15 @@ class Engine(gregngine.Engine):
 				walls.append("Right")
 
 			Entity.walls = walls
+
+	def DrawHUDs(self):
+		super().DrawHUDs()
+
+		xM, yM = pygame.mouse.get_pos()
+		pygame.draw.rect(self.window, color, (xM-crosshair['gap']-crosshair['length'], yM-crosshair['width']/2, crosshair['length'], crosshair['width']) )
+		pygame.draw.rect(self.window, color, (xM+crosshair['gap'], yM-crosshair['width']/2, crosshair['length'], crosshair['width']) )
+		pygame.draw.rect(self.window, color, (xM-crosshair['width']/2, yM-crosshair['gap']-crosshair['length'], crosshair['width'] , crosshair['length']) )
+		pygame.draw.rect(self.window, color, (xM-crosshair['width']/2, yM+crosshair['gap'], crosshair['width'], crosshair['length']) )
 
 if __name__ == "__main__":
 	with open("config.json","r") as file:

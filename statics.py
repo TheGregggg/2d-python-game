@@ -13,6 +13,12 @@ actions = {
 	"pause": pygame.K_ESCAPE
 }
 
+crosshair = {
+	'length': 4,
+	'gap': 4,
+	'width': 4,
+}
+
 # Attack Per Sec
 weaponTypeAPSMultiplier = {
 	'sword': 1,
