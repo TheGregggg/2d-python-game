@@ -18,14 +18,14 @@ from pygame.locals import *
 from statics import *
 
 #player scirpts import
-from scripts.player.player import *
-from scripts.player.inventory import *
-from scripts.player.skillTree import *
+from scripts.player.Player import *
+from scripts.player.Inventory import *
+from scripts.player.SkillTree import *
 
 # other scripts import
 from scripts.HUDMenuManager import *
-from scripts.item import *
-from scripts.entity import *
+from scripts.Item import *
+from scripts.Entity import *
 
 class Engine(gregngine.Engine):
 	def __init__(self, param):
@@ -33,6 +33,7 @@ class Engine(gregngine.Engine):
 
 		self.world = world
 		self.world.loadSprites('overworld',self.param['pixelSize'])
+		self.newPixelScale = self.param['newPixelScale']
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
 		self.states['start'] = ['startMenu']
@@ -41,10 +42,16 @@ class Engine(gregngine.Engine):
 		self.currentHUD = 'startMenu'
 
 		self.collisionsDistance = 1.5
-		self.collisionsDistance *= self.param['pixelSize']
+		self.collisionsDistance *= self.newPixelScale
 		self.collisions = {}
 
 		self.damagesInfos = []
+
+		self.rezizeSprites()
+
+	def rezizeSprites(self):
+		for sprite in self.world.sprites:
+			self.world.sprites[sprite] = pygame.transform.scale(self.world.sprites[sprite].convert_alpha(),(self.newPixelScale,self.newPixelScale))
 
 	def loadScreenSaves(self):
 		super().loadSaves()
@@ -64,7 +71,7 @@ class Engine(gregngine.Engine):
 			self.player = Player(playerParam)
 			self.player.initPostParent()
 			self.player.camera = self.mainCamera
-			self.mainCamera.setPos(self.player.x,self.player.y)
+			self.mainCamera.setPos(0,0)
 
 			self.player.data = data['playerData']
 			self.player.stats = self.player.data['stats']
@@ -167,8 +174,8 @@ class Engine(gregngine.Engine):
 		print('Save')
 
 	def loadGame(self):
-		#savesLoaded = self.loadSaves()
-		savesLoaded = False
+		savesLoaded = self.loadSaves()
+		#savesLoaded = False
 		
 		if not savesLoaded:
 			print('load init')
@@ -181,7 +188,7 @@ class Engine(gregngine.Engine):
 			self.player = Player(playerParam)
 			self.player.initPostParent()
 			self.player.camera = self.mainCamera
-			self.mainCamera.setPos(self.player.x,self.player.y)
+			self.mainCamera.setPos(0,0)
 
 			self.entitiesManager.addEntity(self.player)
 
@@ -358,33 +365,34 @@ class Engine(gregngine.Engine):
 	def DrawWorld(self):
 		super().DrawWorld()
 
+		widthBy2 = self.param['width']/2
+		heightBy2 = self.param['height']/2
+
 		coords = self.ScreenToWorldCoords
 		for entity in self.entitiesManager.visibleEntities:
 			entity.collisions = {}
 
-		for y_index,y in enumerate(range(coords['yStart'], coords['yEnd'])):
-			for x_index,x in enumerate(range(coords['xStart'], coords['xEnd'])):
-				if 0 <= x < len(self.world.world[0]) and 0 <= y < len(self.world.world): 	
-					coord = ( (x_index - coords['offx'])*self.param['pixelSize'], (y_index - coords['offy'])*self.param['pixelSize'])
-					groundTile = self.world.world[y][x]
-					wallTile = self.world.walls[coords['yStart']+y_index][coords['xStart']+x_index]
+		for y_index,y in enumerate(self.world.world[coords['yStart']:coords['yEnd']]):
+			for x_index,x in enumerate(y[coords['xStart']:coords['xEnd']]):
+				coord = ((x_index*self.newPixelScale)-(coords['offx']*self.newPixelScale) , (y_index*self.newPixelScale)-(coords['offy']*self.newPixelScale))
+				
+				wall = self.world.walls[coords['yStart']+y_index][coords['xStart']+x_index]
+				if wall == " ":
+					self.window.blit(self.world.sprites[x], coord)
 
-					if wallTile == " ":
-						self.renderedSurface.blit(self.world.sprites[groundTile], coord)
-
-					else:
-						self.renderedSurface.blits(((self.world.sprites[groundTile], coord),(self.world.sprites[wallTile], coord)))
-						for entity in self.entitiesManager.visibleEntities:
-							if entity.data['type'] != 'item':
-								xEnt,yEnt = entity.x - (coords['xStart'] + coords['offx']),entity.y - (coords['yStart']+coords['offy'])
-								xEnt,yEnt = xEnt*self.param['pixelSize'], yEnt*self.param['pixelSize']
-								dist = math.hypot(coord[0]-xEnt, coord[1]-yEnt)
-								if abs(dist) < self.collisionsDistance:
-									if (y_index,x_index) not in self.collisions:
-										entity.collisions[(y_index,x_index)] = coord
-								
-									if self.debugMode == True:
-										pygame.draw.rect(self.renderedSurface,(255,0,0),Rect(coord,(self.param['pixelSize'],self.param['pixelSize'])))
+				else:
+					self.window.blits(((self.world.sprites[x], coord),(self.world.sprites[wall], coord)))
+					for entity in self.entitiesManager.visibleEntities:
+						if entity.data['type'] != 'item':
+							x,y = entity.x - (coords['xStart'] + coords['offx']),entity.y - (coords['yStart']+coords['offy'])
+							x,y = x*self.param['newPixelScale'], y*self.param['newPixelScale']
+							dist = math.hypot(coord[0]-x, coord[1]-y)
+							if abs(dist) < self.collisionsDistance:
+								if (y_index,x_index) not in self.collisions:
+									entity.collisions[(y_index,x_index)] = coord
+							
+								if self.debugMode == True:
+									pygame.draw.rect(self.window,(255,0,0),Rect(coord,(self.newPixelScale,self.newPixelScale)))
 		
 	def checkCollision(self):
 		ents = [ent for ent in self.entitiesManager.visibleEntities if ent.data['type'] != 'item']
@@ -449,7 +457,7 @@ class Engine(gregngine.Engine):
 			}
 
 			for collisions in Entity.collisions.keys():
-				rect = Rect(Entity.collisions[collisions],(self.param['pixelSize'],self.param['pixelSize']))
+				rect = Rect(Entity.collisions[collisions],(self.newPixelScale,self.newPixelScale))
 
 				for point in points.keys():
 					if points[point]["value"] == 0:

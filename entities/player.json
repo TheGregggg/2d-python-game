@@ -55,11 +55,11 @@
         "attack": {
             "stepTime": 0.05,
             "steps":[
-                {"x" : 60, "y": 0, "rotation": -35},
-                {"x" : 70, "y": 30, "rotation": -45},
-                {"x" : 80, "y": 60, "rotation": -70},
-                {"x" : 70, "y": 70, "rotation": -95},
-                {"x" : 60, "y": 80, "rotation": -105}
+                {"x" : 0, "y": 100, "rotation": -45},
+                {"x" : 50, "y": 150, "rotation": -60},
+                {"x" : 100, "y": 160, "rotation": -80},
+                {"x" : 150, "y": 150, "rotation": -90},
+                {"x" : 140, "y": 100, "rotation": -110}
             ]
         }
     },

@@ -14,13 +14,12 @@ class Inventory():
 		self.handsStack = 0
 		self.isOpen = False
 		self.player = player
-		self.engine = self.player.engine
 
 		self.font = pygame.font.Font('./assets/fonts/Pixel Digivolve.otf', 10*self.player.engine.param['HudScale'])
 	
 	def drawHud(self,passThrough):
 		scale = passThrough['HudScale']
-		width, height = self.engine.HUDSurface.get_size()
+		width, height = passThrough['window'].get_size()
 		coords = {
 			'right': 8,
 			'top': 8,
@@ -42,8 +41,7 @@ class Inventory():
 			pygame.draw.circle(case,(0,0,0,transparency),circle,radius)
 
 		if passThrough['currentHUD'] == 'main':
-			
-			self.engine.HUDSurface.blit(case, (coords['left'], coords['top']))
+			passThrough['window'].blit(case, (coords['left'], coords['top']))
 
 			if self.hands is not None:
 				self.hands.drawSprite(scale,coords, passThrough)
@@ -52,7 +50,7 @@ class Inventory():
 			if self.handsStack > 1:
 				img = self.font.render(str(self.handsStack), False, (255, 255, 255))
 				imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-				self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+				passThrough['window'].blit(img,(imgLeft, imgTop))
 
 			if passThrough['mousePosClick'] is not None and Rect((coords['left'], coords['top']),(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):
 				self.isOpen = True
@@ -94,25 +92,25 @@ class Inventory():
 					cases.append({'place':(int(placeLeft),int(placeTop)),'x_value':entity,'ground':True})
 
 			for caseInfo in cases:
-				self.engine.HUDSurface.blit(case,caseInfo['place'])
+				passThrough['window'].blit(case,caseInfo['place'])
 				
 				if caseInfo['x_value'] is not None:
 					coords['left'],coords['top'] = caseInfo['place']
 					caseInfo['x_value'].drawSprite(scale,coords,passThrough)
 					img = self.font.render(caseInfo['x_value'].data['displayedName'], False, (255, 255, 255))
 					imgLeft, imgTop = coords['left'] + (case.get_width() - img.get_width())/2, coords['top'] + case.get_height() - scale
-					self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+					passThrough['window'].blit(img,(imgLeft, imgTop))
 
 					if 'y' in caseInfo:
 						if self.stacks[caseInfo['y']][caseInfo['x']] > 1:
 							img = self.font.render(str(self.stacks[caseInfo['y']][caseInfo['x']]), False, (255, 255, 255))
 							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-							self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+							passThrough['window'].blit(img,(imgLeft, imgTop))
 					elif caseInfo['x_value'] == self.hands:
 						if self.handsStack > 1:
 							img = self.font.render(str(self.handsStack), False, (255, 255, 255))
 							imgLeft, imgTop = coords['left'] + case.get_width() - img.get_width() - img.get_width()/2, coords['top'] + case.get_height() - img.get_height() - img.get_height()/4
-							self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+							passThrough['window'].blit(img,(imgLeft, imgTop))
 
 				if passThrough['mousePosClick'] is not None:
 					if Rect(caseInfo['place'],(int(coords['width']*scale),int(coords['height']*scale))).collidepoint(passThrough['mousePosClick']):

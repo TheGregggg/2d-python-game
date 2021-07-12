@@ -2,7 +2,8 @@ import gregngine.engine as gregngine
 
 import random
 
-from scripts.item import *
+from scripts.Item import *
+
 
 class Entity(gregngine.Entity):
 	def __init__(self, param):

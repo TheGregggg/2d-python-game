@@ -18,6 +18,8 @@ class Item():
 
 		self.engine = param['engine']
 		self.param["pixelSize"] = self.engine.param["pixelSize"]
+		self.param["scaleMultiplier"] = self.engine.param["scaleMultiplier"]
+		self.param['newPixelScale'] = self.engine.param["newPixelScale"]
 
 		if not 'x' in param:
 			self.isGrounded = False
@@ -46,7 +48,7 @@ class Item():
 		location = (self.tilemapSettings['start'][0], self.tilemapSettings['start'][1])
 		self.sprite = self.tilemap.subsurface(pygame.Rect(location, self.tilemapSettings['size']))
 
-		itemScale = (int(self.param['pixelSize']*tilemap['scaling']/tilemap['ratio']),int(self.param['pixelSize']*tilemap['scaling']))
+		itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
 		self.groundSprite = pygame.transform.scale(self.sprite,itemScale)
 
 	def drawSprite(self,scale,coords,passThrough):
@@ -56,14 +58,14 @@ class Item():
 		if self.data['itemType'] == 'weapon':
 			sprite = pygame.transform.rotate(sprite,-45)
 
-		self.engine.HUDSurface.blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
+		passThrough['window'].blit(sprite, (coords['left']+(tilemap['leftOffset']*scale) , coords['top']+(tilemap['topOffset']*scale)))
 
 	def draw(self, xStart, yStart, passThrough):
 		if self.isGrounded:
 			xToDraw = self.x - xStart 
 			yToDraw = self.y - yStart 
 
-			self.engine.renderedSurface.blit(self.sprite , (xToDraw*self.param['pixelSize'], yToDraw*self.param['pixelSize'] - self.groundSprite.get_height()/4))
+			passThrough['window'].blit(self.groundSprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale'] - self.groundSprite.get_height()/4))
 
 	def move(self, dtime):
 		pass

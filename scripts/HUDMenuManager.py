@@ -70,8 +70,10 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		}
 	
 	def startMenu(self, passThrough):
-		screenWidth, screenHeight = self.engine.HUDSurface.get_size()
-		self.engine.window.fill((255,255,255))
+		screenWidth, screenHeight = passThrough['window'].get_size()
+		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
+		background.fill((255,255,255))
+		passThrough['window'].blit(background, (0,0))
 
 		scale = self.hudScale
 		
@@ -80,7 +82,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
 		top = int(screenHeight - topHeight)
 
-		self.mousePos = passThrough['mousePos']
+		self.mousePos = pygame.mouse.get_pos()
 
 		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 
@@ -89,18 +91,18 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			top += height*scale
 
 		title = self.font.render('The Legend of Pylda', False, (255, 158, 54))
-		imgLeft = int(self.engine.window.get_width()/2 - title.get_width()/2) + scale
+		imgLeft = int(passThrough['window'].get_width()/2 - title.get_width()/2) + scale
 		imgTop = 20*screenHeight/100
-		self.engine.window.blit(title, (imgLeft,imgTop))
+		passThrough['window'].blit(title, (imgLeft,imgTop))
 
-		self.engine.window.blit(btns, self.engine.renderedDisplayOffsets)
+		passThrough['window'].blit(btns, (0,0))
 	
 	def pauseMenu(self, passThrough):
-		screenWidth, screenHeight = self.engine.HUDSurface.get_size()
+		screenWidth, screenHeight = passThrough['window'].get_size()
 
 		background = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 		background.fill((0,0,0,75))
-		self.engine.window.blit(background, self.engine.renderedDisplayOffsets)
+		passThrough['window'].blit(background, (0,0))
 
 		scale = self.hudScale
 		
@@ -109,7 +111,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 		topHeight = len(self.huds["pauseMenu"]['buttons'])*(imgHeight+self.param['margin']*scale)
 		top = int(screenHeight/2 - topHeight/2)
 
-		self.mousePos = passThrough['mousePos']
+		self.mousePos = pygame.mouse.get_pos()
 
 		btns = pygame.Surface((screenWidth, screenHeight), pygame.SRCALPHA)
 
@@ -117,7 +119,7 @@ class HUDMenuManager(gregngine.HUDMenuManager):
 			height = self.drawButton(button,'centered',top,passThrough,btns)
 			top += height*scale
 
-		self.engine.window.blit(btns,  self.engine.renderedDisplayOffsets)
+		passThrough['window'].blit(btns, (0,0))
 
 	def drawButton(self,button,rectLeft,rectTop,passThrough,btns):
 		scale = self.hudScale

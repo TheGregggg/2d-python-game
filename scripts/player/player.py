@@ -9,7 +9,7 @@ import gregngine.engine as gregngine
 from statics import *
 
 from game import Inventory
-from game import SkillTree
+from game import SkillTree 
 
 class Player(gregngine.Entity):
 	def __init__(self, param):
@@ -177,21 +177,21 @@ class Player(gregngine.Entity):
 						Rect(rectCoords[0]['width']*scale,(rectCoords[1]['top']-Radius)*scale,Radius*scale,Radius*scale)) #little concave circle
 					pygame.draw.circle(case,(0,0,0,0),((rectCoords[0]['width']+Radius)*scale,(rectCoords[1]['top']-Radius)*scale),Radius*scale,draw_bottom_left=True) #little concave circle mask
 			
-			self.engine.HUDSurface.blit(case, (left*scale, top*scale))
+			passThrough['window'].blit(case, (left*scale, top*scale))
 
 			# render level text
 			img = self.bigFont.render(str(self.stats['level']), False, (255, 242, 0))
 			imgLeft = int(left*scale + rectCoords[0]['width']*scale/2 - img.get_width()/2) + scale
 			imgTop = int(top*scale + rectCoords[1]['top']*scale/2 - img.get_height()/2) + scale
-			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+			passThrough['window'].blit(img,(imgLeft, imgTop))
 
 			# render money text
 			img = self.smallFont.render(str(self.stats['money']) + ' $', False, (255, 242, 0))
 			imgShadow = self.smallFont.render(str(self.stats['money']) + ' $', False, (0, 0, 0, 0.5))
 			imgLeft = int(left*scale + rectCoords[1]['width']*scale - img.get_width()) + scale
 			imgTop = int(top*scale + rectCoords[7]['top']*scale + img.get_height()/2 )
-			self.engine.HUDSurface.blit(imgShadow,(imgLeft+scale, imgTop+scale))
-			self.engine.HUDSurface.blit(img,(imgLeft, imgTop))
+			passThrough['window'].blit(imgShadow,(imgLeft+scale, imgTop+scale))
+			passThrough['window'].blit(img,(imgLeft, imgTop))
 
 	def drawHudBar(self,value,max,color,passThrough,coords):
 		"""
@@ -207,10 +207,10 @@ class Player(gregngine.Entity):
 		x = ((value * 100) / max) /100 if value > 0 else 0
 
 		rect = gFunction.createRectOutlined(x, coords['left']*scale, coords['top']*scale, coords['width']*scale, coords['height']*scale, coords['outline']*scale)
-		pygame.draw.rect(self.engine.HUDSurface,(0,0,0),rect[0])
+		pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
 
 		if x > 0:
-			pygame.draw.rect(self.engine.HUDSurface,color,rect[1])
+			pygame.draw.rect(passThrough['window'],color,rect[1])
 
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
@@ -225,7 +225,6 @@ class Player(gregngine.Entity):
 			x,y = x*self.stats["normalSpeed"],y*self.stats["normalSpeed"]
 
 		x,y = gFunction.normalize(x * dTime * 0.001,y * dTime * 0.001)
-		x,y = round(x,3), round(y,3)
 
 		self.x += x
 		self.y += y
@@ -281,13 +280,13 @@ class Player(gregngine.Entity):
 			attackRect = self.rect
 
 			if lookingTo == 'left':
-				attackRect.left -= self.param['pixelSize']
+				attackRect.left -= self.param['newPixelScale']
 			elif lookingTo == 'right':
-				attackRect.left += self.param['pixelSize']
+				attackRect.left += self.param['newPixelScale']
 			elif lookingTo == 'top':
-				attackRect.top -= self.param['pixelSize']
+				attackRect.top -= self.param['newPixelScale']
 			elif lookingTo == 'bottom':
-				attackRect.top += self.param['pixelSize']
+				attackRect.top += self.param['newPixelScale']
 
 			self.isAttacking = True
 
@@ -310,16 +309,16 @@ class Player(gregngine.Entity):
 
 			elif self.inventory.hands is not None:
 				currentStep = self.data['animation']['attack']['steps'][self.atkAnim['lastStep']]
-				animationSurface = pygame.Surface((int(3*self.param['pixelSize']),int(3*self.param['pixelSize'])), pygame.SRCALPHA)
+				animationSurface = pygame.Surface((int(3*self.param['newPixelScale']),int(3*self.param['newPixelScale'])), pygame.SRCALPHA)
 
 				sprite = self.inventory.hands.sprite
 				tilemap = self.inventory.hands.data['tilemap']
 
-				itemScale = (int(self.param['pixelSize']*tilemap['scaling']/tilemap['ratio']),int(self.param['pixelSize']*tilemap['scaling']))
+				itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
 				sprite = pygame.transform.scale(sprite.convert_alpha(),(itemScale))
 				sprite = pygame.transform.rotate(sprite,currentStep['rotation'])
 
-				animationSurface.blit(sprite,((currentStep['x']/50) * self.param['pixelSize'],(currentStep['y']/50) * self.param['pixelSize']))
+				animationSurface.blit(sprite,(currentStep['y'],currentStep['x']))
 				if self.atkLookingTo == 'top':
 					animationSurface = pygame.transform.rotate(animationSurface,90)
 				elif self.atkLookingTo == 'bottom':

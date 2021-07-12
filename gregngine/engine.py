@@ -56,6 +56,8 @@ class Animator(object):
 		self.animationSettings = data["animation"]
 
 		self.pixelSize = param['pixelSize']
+		self.scaleMultiplier = param['scaleMultiplier']
+		self.newTileScale = param['pixelSize'] * param['scaleMultiplier']
 
 		self.lastFrame = time.time()
 
@@ -102,7 +104,7 @@ class Animator(object):
 			else:
 				sprite = self.animations[self.animation][self.state]
 
-			self.sprite = pygame.transform.scale(sprite.convert_alpha(),(self.pixelSize,self.pixelSize))
+			self.sprite = pygame.transform.scale(sprite.convert_alpha(),(self.newTileScale,self.newTileScale))
 
 	def setAnimation(self, animation):
 		if self.animation != animation:
@@ -129,6 +131,8 @@ class Entity(object):
 
 		self.engine = param['engine']
 		self.param["pixelSize"] = self.engine.param["pixelSize"]
+		self.param["scaleMultiplier"] = self.engine.param["scaleMultiplier"]
+		self.param['newPixelScale'] = self.engine.param["newPixelScale"]
 
 		self.x = param['x']
 		self.y = param['y']
@@ -143,7 +147,7 @@ class Entity(object):
 			self.data = json.load(file)
 
 		self.col = self.data['collider']
-		self.colAngleSize = self.col['angleSize']*self.param['pixelSize']
+		self.colAngleSize = self.col['angleSize']*self.param['newPixelScale']
 
 		self.stats = self.data["stats"]
 		self.stats["health"] = self.stats["maxHealth"]
@@ -201,13 +205,13 @@ class Entity(object):
 			attackRect = self.rect
 
 			if lookingTo == 'left':
-				attackRect.left -= self.param['pixelSize']
+				attackRect.left -= self.param['newPixelScale']
 			elif lookingTo == 'right':
-				attackRect.left += self.param['pixelSize']
+				attackRect.left += self.param['newPixelScale']
 			elif lookingTo == 'top':
-				attackRect.top -= self.param['pixelSize']
+				attackRect.top -= self.param['newPixelScale']
 			elif lookingTo == 'bottom':
-				attackRect.top += self.param['pixelSize']
+				attackRect.top += self.param['newPixelScale']
 
 			self.isAttacking = True
 
@@ -229,14 +233,14 @@ class Entity(object):
 				self.atkAnim['lastTime'] = 0
 
 			currentStep = self.data['animation']['attack']['steps'][self.atkAnim['lastStep']]
-			animationSurface = pygame.Surface((int(3*self.param['pixelSize']),int(3*self.param['pixelSize'])), pygame.SRCALPHA)
+			animationSurface = pygame.Surface((int(3*self.param['newPixelScale']),int(3*self.param['newPixelScale'])), pygame.SRCALPHA)
 
 			sprite = self.animator.sprite
 
 			sprite = pygame.transform.rotate(sprite,currentStep['rotation'])
 
-			y = currentStep['y']*self.param['pixelSize']/100
-			x = currentStep['x']*self.param['pixelSize']/100
+			y = currentStep['y']*self.param['newPixelScale']/100
+			x = currentStep['x']*self.param['newPixelScale']/100
 
 			if self.atkLookingTo == 'top':
 				x,y = -y,-x
@@ -245,7 +249,7 @@ class Entity(object):
 			elif self.atkLookingTo == 'left':
 				x = -x
 			
-			animationSurface.blit(sprite,(self.param['pixelSize']+x,self.param['pixelSize']+y))
+			animationSurface.blit(sprite,(self.param['newPixelScale']+x,self.param['newPixelScale']+y))
 
 			return animationSurface
 
@@ -258,34 +262,34 @@ class Entity(object):
 		if not passThrough['isPaused']:
 			self.animator.setFrame()
 
-		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['pixelSize'], (yToDraw+self.col['offSets']['top'])*self.param['pixelSize'], self.col['size']['width']*self.param['pixelSize'], self.col['size']['height']*self.param['pixelSize'])
+		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
 		if passThrough['debug'] == True:
-			pygame.draw.rect(self.engine.renderedSurface,(255,0,0),self.rect)
+			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
 
 		if not passThrough['isPaused']:
 			self.animationSurface = self.attackAnimation()
 
 		if self.data['type'] == 'player':
-			self.engine.renderedSurface.blit(self.animator.sprite , (xToDraw*self.param['pixelSize'], yToDraw*self.param['pixelSize']))
+			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 		elif self.animationSurface is None:
-			self.engine.renderedSurface.blit(self.animator.sprite , (xToDraw*self.param['pixelSize'], yToDraw*self.param['pixelSize']))
+			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
 		if self.animationSurface is not None:
-			self.engine.renderedSurface.blit(self.animationSurface,((xToDraw-1)*self.param['pixelSize'], (yToDraw-1)*self.param['pixelSize']))
+			passThrough['window'].blit(self.animationSurface,((xToDraw-1)*self.param['newPixelScale'], (yToDraw-1)*self.param['newPixelScale']))
 
 	def drawHud(self, xPos, yPos, passThrough):
 		if passThrough['currentHUD'] == 'main':
 			scale = passThrough['HudScale']
 
-			xToDraw = (self.x - xPos)*self.param['pixelSize'] * self.engine.renderedWidthAndHeightRatios[0]
-			yToDraw = (self.y - yPos)*self.param['pixelSize'] * self.engine.renderedWidthAndHeightRatios[1]
+			xToDraw = (self.x - xPos)*self.param['newPixelScale']
+			yToDraw = (self.y - yPos)*self.param['newPixelScale']
 
 			value = ((self.stats["health"] * 100) / self.stats["maxHealth"]) / 100 if self.stats["health"] > 0 else 0
 
 			if self.stats["health"] < self.stats["maxHealth"]:
 				rect = gFunction.createRectOutlined(value,xToDraw,yToDraw,100,20,6)
-				pygame.draw.rect(self.engine.HUDSurface,(0,0,0),rect[0])
-				pygame.draw.rect(self.engine.HUDSurface,(255,0,0),rect[1])
+				pygame.draw.rect(passThrough['window'],(0,0,0),rect[0])
+				pygame.draw.rect(passThrough['window'],(255,0,0),rect[1])
 
 	def death(self):
 		pass
@@ -330,22 +334,21 @@ class Engine(object):
 		engine do each frame this loop:
 			- transmit input
 			- apply physical changes
-			- call drawWorld function
 			- Draw all visible entities
 			- Draw all HUD
 
 		param = {
-				"width" : 1200,
-				"height" : 800,
-				"saves": "saves",
-				"pixelSize": 16,
-				"scaleMultiplier": 6,
-				"aspectRatio": [16,9],
-				"HudScale": 2,
-				"debug": false
-			}
+			"height" : HEIGHT,
+			"width" : WIDTH,
+			"saves": "saves/saves",
+			"pixelSize": 16,
+			"scaleMultiplier": 6,
+			"debug": False/True
+		}
 		"""
 		pygame.init()
+
+		self.font = pygame.font.SysFont("Arial", 18)
 
 		self.param = param
 		self.debugMode = param["debug"]
@@ -355,12 +358,10 @@ class Engine(object):
 			'pause': []
 		}
 
+		self.param['newPixelScale'] = self.param["pixelSize"]*self.param["scaleMultiplier"]
+		self.calculatesTilesOnAxis()
+
 		self.window = pygame.display.set_mode((param["width"], param["height"]),RESIZABLE)
-
-		self.renderedSurface = pygame.Surface((param['aspectRatio'][0]*param["pixelSize"],param['aspectRatio'][1]*param["pixelSize"]))
-		self.getRenderedWidthAndHeight()
-
-		self.HUDSurface = pygame.Surface(self.renderedWidthAndHeight, pygame.SRCALPHA)
 
 		self.mainCamera = Camera()
 
@@ -374,23 +375,11 @@ class Engine(object):
 		#self.loadSaves() load save done in game.py to ensure there is a save file
 		self.clock = pygame.time.Clock()
 		self.clockTick = 120
-		self.font = pygame.font.SysFont("Arial", 18)
+
+	def calculatesTilesOnAxis(self):  
+		self.tilesOnX = int(self.param['width']/self.param['newPixelScale'])+1
+		self.tilesOnY = int(self.param['height']/self.param['newPixelScale'])+1
 	
-	def getRenderedWidthAndHeight(self):
-		width, height = self.param["width"], self.param["height"]
-		xOffsets, yOffsets = 0, 0
-
-		if self.param["width"]/self.param['aspectRatio'][0]  >  self.param["height"]/self.param['aspectRatio'][1]:
-			width = int( (self.param["height"] / self.param['aspectRatio'][1]) * self.param['aspectRatio'][0])
-			xOffsets = (self.param["width"] - width)/2
-		else:
-			height = int( (self.param["width"] / self.param['aspectRatio'][0]) * self.param['aspectRatio'][1])
-			yOffsets = (self.param["height"] - height)/2
-		
-		self.renderedWidthAndHeight = (width, height)
-		self.renderedWidthAndHeightRatios = (width/(self.param['aspectRatio'][0]*self.param["pixelSize"]) ,height/(self.param['aspectRatio'][1]*self.param["pixelSize"]))
-		self.renderedDisplayOffsets = (xOffsets, yOffsets)
-
 	def loadSaves(self):
 		with shelve.open(self.savePath + "/saves") as data:
 			if 'miscs' in data:
@@ -403,8 +392,9 @@ class Engine(object):
 		self.window = pygame.display.set_mode((w, h),RESIZABLE)
 		self.param['height'] = h
 		self.param['width'] = w
-		self.getRenderedWidthAndHeight()
-		self.HUDSurface = pygame.Surface(self.renderedWidthAndHeight, pygame.SRCALPHA)
+		self.calculatesTilesOnAxis()
+		if hasattr(self, 'player'):
+			self.player.setCameraOffset(self.tilesOnX-1,self.tilesOnY-1)
 
 		if saveData:
 			with shelve.open(self.savePath + "/saves") as data:
@@ -416,28 +406,36 @@ class Engine(object):
 	def getTilesOnScreen(self):
 		CameraPosX, CameraPosY = self.mainCamera.getPos()
 		
-		xStart = math.floor(CameraPosX) - int((self.param['aspectRatio'][0]+1)/2 - 0.5)
-		yStart = math.floor(CameraPosY) - int((self.param['aspectRatio'][1]+1)/2 - 0.5)
+		if CameraPosX < 0:
+			xStart = 0
+		else:
+			xStart = math.floor(CameraPosX)
+			
+		if CameraPosY < 0:
+			yStart = 0
+		else:
+			yStart = math.floor(CameraPosY)
 
-		xEnd = xStart + self.param['aspectRatio'][0] + 2
-		yEnd = yStart + self.param['aspectRatio'][1] + 2
+		xEnd = xStart + self.tilesOnX + 2
+		yEnd = yStart + self.tilesOnY + 2
 
-		widthOffset = round(self.param['aspectRatio'][0]*self.param['pixelSize'] - self.renderedSurface.get_width(),2)/self.param['pixelSize']/2
-		heightOffset = round(self.param['aspectRatio'][1]*self.param['pixelSize'] - self.renderedSurface.get_height(),2)/self.param['pixelSize']/2
+		widthOffset = round(self.tilesOnX*self.param['newPixelScale'] - self.window.get_width(),2)/self.param['newPixelScale']/2
+		heightOffset = round(self.tilesOnY*self.param['newPixelScale'] - self.window.get_height(),2)/self.param['newPixelScale']/2
 
-		offx = round(CameraPosX - math.floor(CameraPosX),3) + 0.25 #+ widthOffset
-		offy = round(CameraPosY - math.floor(CameraPosY),3) #+ heightOffset
+		offx = round(CameraPosX - xStart,3) + widthOffset
+		offy = round(CameraPosY - yStart,3) + heightOffset
 
 		dic = {
 			"yStart":yStart,
 			"yEnd":yEnd,
 			"xStart":xStart,
 			"xEnd":xEnd,
-			"offx": offx,
-			"offy": offy,
+			"offx":offx,
+			"offy":offy,
 			"widthOffset": widthOffset,
 			"heightOffset": heightOffset
 		}
+		#print(dic)
 
 		self.ScreenToWorldCoords = dic
 
@@ -456,10 +454,7 @@ class Engine(object):
 				if event.type == VIDEORESIZE:
 					self.rezizeWindow(event.h,event.w)
 				if event.type == pygame.MOUSEBUTTONDOWN:
-					mousePosTuple = pygame.mouse.get_pos()
-					self.mousePosClick = [0,0]
-					self.mousePosClick[0] = mousePosTuple[0] - self.renderedDisplayOffsets[0]
-					self.mousePosClick[1] = mousePosTuple[1] - self.renderedDisplayOffsets[1]
+					self.mousePosClick = pygame.mouse.get_pos()
 					self.mouseButtonClick = pygame.mouse.get_pressed()
 			
 			self.main(inputEvent, pygame.key.get_pressed())
@@ -472,7 +467,6 @@ class Engine(object):
 
 			pygame.display.update()
 			self.clock.tick()
-			#self.clock.tick(self.clockTick)
 
 	def main(self,inputEvent,inputPressed):
 		pass
@@ -487,7 +481,6 @@ class Engine(object):
 	def Draws(self):
 		self.getTilesOnScreen()
 		self.DrawWorld()
-
 		coords = self.ScreenToWorldCoords
 
 		entities = self.entitiesManager.visibleEntities
@@ -497,33 +490,22 @@ class Engine(object):
 
 		for entitie in entities:
 			entitie.draw(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],{'debug':self.debugMode,'window':self.window,'isPaused':isPaused})
-
-		scaledRenderedSurface = pygame.transform.scale(self.renderedSurface, self.renderedWidthAndHeight)
-		self.window.blit(scaledRenderedSurface, self.renderedDisplayOffsets)
+		
 		fps = str(int(self.clock.get_fps()))
 		fps_text = self.font.render(fps, 1, (255,255,255))
 		self.window.blit(fps_text, (0, 0))
 	
 	def DrawWorld(self):
-		self.renderedSurface.fill((0,0,0))
 		self.window.fill((0,0,0)) 
 		self.entitiesManager.getVisibleEntities(self.ScreenToWorldCoords)
 
 	def DrawHUDs(self):
-		self.HUDSurface.fill((0,0,0,0))
-
 		coords = self.ScreenToWorldCoords
 		visibleEnt = self.entitiesManager.visibleEntities
-		mousePosTuple = pygame.mouse.get_pos()
-		mousePos = [0,0]
-		mousePos[0] = mousePosTuple[0] - self.renderedDisplayOffsets[0]
-		mousePos[1] = mousePosTuple[1] - self.renderedDisplayOffsets[1]
-
 		passThrough = {
 			"window": self.window,
 			"HudScale": self.param['HudScale'],
 			"currentHUD": self.currentHUD,
-			"mousePos": mousePos,
 			"mousePosClick": self.mousePosClick,
 			"mouseButtonClick": self.mouseButtonClick,
 			"visibleEntities": visibleEnt
@@ -532,6 +514,4 @@ class Engine(object):
 		self.HUDMenuManager.drawHud(passThrough)
 
 		for entitie in visibleEnt:
-			entitie.drawHud((coords['xStart']+coords['offx']),(coords['yStart']+coords['offy']),passThrough)
-
-		self.window.blit(self.HUDSurface,  self.renderedDisplayOffsets)
+			entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)
