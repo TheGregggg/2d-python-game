@@ -229,12 +229,12 @@ class Player(gregngine.Entity):
 		self.x += x
 		self.y += y
 
-		camSmoothOffset = self.data['camera']['smoothOffset']
+		camSmoothPercentage = self.data['camera']['smoothPercentage']
 
-		if self.x - self.camera.x > self.param['x']+camSmoothOffset or self.x - self.camera.x < self.param['x']-camSmoothOffset:
-			self.camera.move(x,0)
-		if self.y - self.camera.y > self.param['y']+camSmoothOffset or self.y - self.camera.y < self.param['y']-camSmoothOffset:
-			self.camera.move(0,y)
+		camMouvX = (self.x - (self.camera.x - self.camera.xOffset*1.5)) / camSmoothPercentage
+		camMouvY = (self.y - (self.camera.y + self.camera.yOffset*6))   / camSmoothPercentage
+
+		self.camera.move(camMouvX, camMouvY)
 
 		self.setVelocity(0,0)
 
