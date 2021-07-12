@@ -9,7 +9,7 @@ import gregngine.functions as gFunction
 import gregngine.engine as gregngine
 
 class ParticleSystem():
-    def __init__(self, engine, color, duration, power, startSize, sizeReduction, emitingRate, emitingRadius, speed, gravity=0):
+    def __init__(self, engine, color, duration, power, startSize, sizeReduction, emitingRate, emitingRadius, speed, outline=None,outlineColor=(0,0,0), gravity=0):
         self.engine = engine
         self.color = color
         self.duration = duration
@@ -20,6 +20,9 @@ class ParticleSystem():
         self.emitingRadius = emitingRadius
         self.gravity = gravity
         self.speed = speed
+
+        self.outline = outline
+        self.outlineColor = outline
 
         self.pixelSize = self.engine.param['newPixelScale']
 
@@ -33,6 +36,8 @@ class ParticleSystem():
 
         for particle in self.particles:
             # draw particles
+            if self.outline is not None:
+                pygame.draw.circle(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size']+self.outline)
             pygame.draw.circle(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size'])
 
             # move particles

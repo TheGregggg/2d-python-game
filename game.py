@@ -49,8 +49,6 @@ class Engine(gregngine.Engine):
 
 		self.damagesInfos = []
 
-		#self.particles = ParticleSystem(self, color=(255,255,255), duration=10, power=100, startSize=5, sizeReduction=0.01, emitingRate=0.5, emitingRadius=360, gravity=0, speed=2)
-
 		self.rezizeSprites()
 
 	def rezizeSprites(self):

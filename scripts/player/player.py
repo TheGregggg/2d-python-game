@@ -11,12 +11,15 @@ from statics import *
 from game import Inventory
 from game import SkillTree 
 
+from scripts.ParticleSystem import *
+
 class Player(gregngine.Entity):
 	def __init__(self, param):
 		super().__init__(param)
 
 		self.speed = self.stats["normalSpeed"]
 		self.running = False
+		self.isMoving = False
 
 		self.camera = None
 		self.inventory = Inventory(self)
@@ -35,6 +38,11 @@ class Player(gregngine.Entity):
 		self.atkAnim = {'lastStep':-1,'lastTime':0}
 
 		self.animator.setFrame()
+
+		self.particles = ParticleSystem(self.engine, color=(255,255,255),
+		duration=10, power=3, startSize=0.6, sizeReduction=0.01,
+		emitingRate=0.25, emitingRadius=90, gravity=0.02, speed=0.6, 
+		outline=1, outlineColor=(0,0,0))
 
 	def applyExpFromLevel(self):
 		expTable = self.data['experienceTable']
@@ -215,6 +223,11 @@ class Player(gregngine.Entity):
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
 
+		if self.velocity['x'] != 0 or self.velocity['y'] != 0:
+			self.isMoving = True
+		else:
+			self.isMoving = False
+
 		if self.running and self.stats['energy']  > 0 and (x != 0 or y !=0):
 			x,y = x*self.stats["maxSpeed"],y*self.stats["maxSpeed"]
 			if self.stats['energy']  < 1:
@@ -231,8 +244,11 @@ class Player(gregngine.Entity):
 
 		camSmoothPercentage = self.data['camera']['smoothPercentage']
 
-		camMouvX = (self.x - (self.camera.x - self.camera.xOffset*1.5)) / camSmoothPercentage
-		camMouvY = (self.y - (self.camera.y + self.camera.yOffset*6))   / camSmoothPercentage
+		camCenterX = self.camera.x + self.param['x']
+		camCenterY = self.camera.y + self.param['y']
+
+		camMouvX = (self.x - camCenterX) / camSmoothPercentage
+		camMouvY = (self.y - camCenterY) / camSmoothPercentage
 
 		self.camera.move(camMouvX, camMouvY)
 
@@ -343,3 +359,15 @@ class Player(gregngine.Entity):
 			
 	def draw(self, xStart, yStart, passThrough):
 		super().draw(xStart, yStart, passThrough)
+
+		xToDraw = self.x - xStart 
+		yToDraw = self.y - yStart
+
+		coords = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+1.05)*self.param['newPixelScale']))
+		if self.isMoving:
+			self.particles.color = self.engine.window.get_at(coords)
+			self.particles.power = 3
+		else:
+			self.particles.power = 0
+		
+		self.particles.draw(coords)
