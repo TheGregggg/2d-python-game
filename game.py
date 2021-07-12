@@ -27,6 +27,8 @@ from scripts.HUDMenuManager import *
 from scripts.Item import *
 from scripts.Entity import *
 
+from scripts.ParticleSystem import *
+
 class Engine(gregngine.Engine):
 	def __init__(self, param):
 		super().__init__(param)
@@ -46,6 +48,8 @@ class Engine(gregngine.Engine):
 		self.collisions = {}
 
 		self.damagesInfos = []
+
+		#self.particles = ParticleSystem(self, color=(255,255,255), duration=10, power=100, startSize=5, sizeReduction=0.01, emitingRate=0.5, emitingRadius=360, gravity=0, speed=2)
 
 		self.rezizeSprites()
 
@@ -393,6 +397,8 @@ class Engine(gregngine.Engine):
 							
 								if self.debugMode == True:
 									pygame.draw.rect(self.window,(255,0,0),Rect(coord,(self.newPixelScale,self.newPixelScale)))
+
+		#self.particles.draw((500,500))
 		
 	def checkCollision(self):
 		ents = [ent for ent in self.entitiesManager.visibleEntities if ent.data['type'] != 'item']

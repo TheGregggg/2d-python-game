@@ -459,7 +459,7 @@ class Engine(object):
 			
 			self.main(inputEvent, pygame.key.get_pressed())
 
-			self.applyPhysicalChanges(self.clock.get_time())
+			self.applyPhysicalChanges()
 
 			self.Draws()
 
@@ -471,7 +471,7 @@ class Engine(object):
 	def main(self,inputEvent,inputPressed):
 		pass
 
-	def applyPhysicalChanges(self,deltaTime):
+	def applyPhysicalChanges(self):
 		for entitie in self.entitiesManager.entities:
 			if entitie.data['type'] == 'monster':
 				if entitie.stats['health'] <= 0:
