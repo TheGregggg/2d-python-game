@@ -351,10 +351,12 @@ class Engine(gregngine.Engine):
 				
 			else:
 				if not self.HUDMenuManager.huds['pauseMenu']['isOpen']:
-					self.HUDMenuManager.huds['pauseMenu']['isOpen'] = True
-					self.currentHUD = 'pauseMenu'
+					if self.currentHUD not in ['optionMenu']: #menus in pauseMenu
+						self.HUDMenuManager.huds['pauseMenu']['isOpen'] = True
+						self.currentHUD = 'pauseMenu'
 				else:
 					self.HUDMenuManager.huds['pauseMenu']['isOpen'] = False
+					self.HUDMenuManager.huds['pauseMenu']['optionOpen'] = False
 					self.currentHUD = 'main'
 
 	def applyDamages(self):
@@ -491,6 +493,7 @@ class Engine(gregngine.Engine):
 		super().DrawHUDs()
 
 		xM, yM = pygame.mouse.get_pos()
+		color = (255,255,255)
 		pygame.draw.rect(self.window, color, (xM-crosshair['gap']-crosshair['length'], yM-crosshair['width']/2, crosshair['length'], crosshair['width']) )
 		pygame.draw.rect(self.window, color, (xM+crosshair['gap'], yM-crosshair['width']/2, crosshair['length'], crosshair['width']) )
 		pygame.draw.rect(self.window, color, (xM-crosshair['width']/2, yM-crosshair['gap']-crosshair['length'], crosshair['width'] , crosshair['length']) )
