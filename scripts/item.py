@@ -4,6 +4,7 @@ from pygame.locals import *
 import json
 
 import gregngine.engine as gregngine
+import gregngine.functions as gFunction
 
 class Item():
 	def __init__(self,param):
@@ -34,7 +35,7 @@ class Item():
 		with open("items/" + param['itemRepr'] + ".json","r") as file:
 			self.data = json.load(file)
 
-		self.name = self.data['displayedName']
+		self.name = f"{self.data['displayedName']}-{gFunction.generateRandomString(10)}"
 		
 		tilemap = self.data['tilemap']
 		self.tilemap = pygame.image.load('assets/sprites/' + self.data["tilemap"]["src"])

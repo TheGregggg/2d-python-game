@@ -145,7 +145,7 @@ class Inventory():
 									y,x = sameCases[0]
 									if self.slots[y][x] is not None:
 										self.stacks[y][x] += 1
-								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'])
+								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'].name)
 
 							elif len(freeCases) > 0:
 								if freeCases[0] == 'hands':
@@ -155,7 +155,7 @@ class Inventory():
 									y,x = freeCases[0]
 									self.slots[y][x] = caseInfo['x_value']
 									self.stacks[y][x] = 1
-								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'])
+								self.player.engine.entitiesManager.killEntity(caseInfo['x_value'].name)
 	
 						else:
 							self.isOpen = False

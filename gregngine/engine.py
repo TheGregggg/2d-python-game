@@ -9,7 +9,6 @@ import gregngine.functions as gFunction
 
 import shelve
 import json
-
 import math
 import time
 
@@ -160,12 +159,18 @@ class Entity(object):
 		self.animator = Animator(self.data,param)
 
 	def move(self, dTime):
+		lastPos = f"{math.floor(self.x)};{math.floor(self.y)}"
+
 		x,y = self.velocity['x'],self.velocity['y']
 		x,y = x*self.stats["speed"],y*self.stats["speed"]
 		x,y = x * dTime * 0.001,y * dTime * 0.001
 
 		self.x += x
 		self.y += y
+
+		newPos = f"{math.floor(self.x)};{math.floor(self.y)}"
+		if lastPos != newPos:
+			self.engine.entitiesManager.mouvEntity(self.name,lastPos,newPos)
 
 		self.setVelocity(0,0)
 
@@ -289,23 +294,43 @@ class Entity(object):
 
 class EntitiesManager(object):
 	def __init__(self):
-		self.entities = []
+		self.entities = {}
+		self.positions = {}
 		self.visibleEntities = []
 
 	def addEntity(self,entity):
-		self.entities.append(entity)
+		self.entities[entity.name] = entity
+		pos = f"{math.floor(entity.x)};{math.floor(entity.y)}"
+		self.addAtPos(entity.name,pos)
+
+	def addAtPos(self,entityName,pos):
+		if pos in self.positions:
+			self.positions[pos].append(entityName)
+		else:
+			self.positions[pos] = [entityName]
 
 	def getVisibleEntities(self,coords):
 		self.visibleEntities = []
-		for entity in self.entities:
-			if entity.x >= coords['xStart']-1 and entity.x <= coords['xEnd'] and entity.y >= coords['yStart']-1 and entity.y <= coords['yEnd']:
-				self.visibleEntities.append(entity)
 
-	def killEntity(self,ent):
-		for entity in self.entities:
-			if entity == ent:
-				entity.death()
-				self.entities.remove(entity)
+		if len(self.entities) > 120: 
+			for x in range(coords['xStart']-1, coords['xEnd']):
+				for y in range(coords['yStart']-1, coords['yEnd']):
+					pos = f"{x};{y}"
+					if pos in self.positions:
+						self.visibleEntities += self.positions[pos]
+		else:
+			for entityName in list(self.entities.keys()):
+				entity = self.entities[entityName]
+				if  coords['xStart']-1 <= entity.x <= coords['xEnd'] and coords['yStart']-1 <= entity.y <= coords['yEnd']:
+					self.visibleEntities.append(entity)
+
+	def mouvEntity(self,entityName,lastPos,newPos):
+		self.positions[lastPos].remove(entityName)
+		self.addAtPos(entityName,newPos)
+
+	def killEntity(self,entityName):
+		self.entities[entityName].death()
+		del self.entities[entityName]
 
 class HUDMenuManager(object):
 	def __init__(self,engine,hudScale):
@@ -467,11 +492,12 @@ class Engine(object):
 		pass
 
 	def applyPhysicalChanges(self):
-		for entitie in self.entitiesManager.entities:
-			if entitie.data['type'] == 'monster':
-				if entitie.stats['health'] <= 0:
-					self.entitiesManager.killEntity(entitie)
-			entitie.move(self.clock.get_time())
+		for entityName in list(self.entitiesManager.entities.keys()):
+			entity = self.entitiesManager.entities[entityName]
+			if entity.data['type'] == 'monster':
+				if entity.stats['health'] <= 0:
+					self.entitiesManager.killEntity(entity.name)
+			entity.move(self.clock.get_time())
 
 	def Draws(self):
 		self.getTilesOnScreen()

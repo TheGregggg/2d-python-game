@@ -60,6 +60,8 @@ class Player(gregngine.Entity):
 		self.angleToMouse = 0
 		self.lastAngleToMouse = 0
 
+		self.specialsDamage = 1
+
 	def applyExpFromLevel(self):
 		expTable = self.data['experienceTable']
 		self.stats["experience"] = 0
@@ -396,43 +398,49 @@ class Player(gregngine.Entity):
 		# angle compare to mouse and player pos weapon
 		playerCenter = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+0.5)*self.param['newPixelScale']))
 		playerCenter = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+0.5)*self.param['newPixelScale']))
+		if self.engine.currentHUD in self.engine.states['play']:
+			mouse = pygame.mouse.get_pos()
+			adj, opo = mouse[0] - playerCenter[0], mouse[1] - playerCenter[1]
+			hypo = math.sqrt(adj**2 + opo**2)
+			cos, sin = adj/hypo, opo/hypo
+			angle = ((math.asin(sin))*180)/math.pi
+			angle +=90
+			if cos < 0:
+				angle = 180 + 180-angle
+			self.lastAngleToMouse = self.angleToMouse
+			self.angleToMouse = angle
 
-		mouse = pygame.mouse.get_pos()
-		adj, opo = mouse[0] - playerCenter[0], mouse[1] - playerCenter[1]
-		hypo = math.sqrt(adj**2 + opo**2)
-		cos, sin = adj/hypo, opo/hypo
-		angle = ((math.asin(sin))*180)/math.pi
-		angle +=90
-		if cos < 0:
-			angle = 180 + 180-angle
-		self.lastAngleToMouse = self.angleToMouse
-		self.angleToMouse = angle
+			angleMouse = self.angleToMouse
+			if self.lastAngleToMouse > 315 and self.angleToMouse < 45:
+				angleMouse += 360
+			mouseAngleDif = max(angleMouse,self.lastAngleToMouse) - min(angleMouse,self.lastAngleToMouse)
 
-		angleMouse = self.angleToMouse
-		if self.lastAngleToMouse > 315 and self.angleToMouse < 45:
-			angleMouse += 360
-		mouseAngleDif = max(angleMouse,self.lastAngleToMouse) - min(angleMouse,self.lastAngleToMouse)
+			weaponParticlesVelocity = None
+			if self.isAttacking and mouseAngleDif > 2 and self.stats['energy'] > 0:
+				self.weaponEffectsParticles.power = 1
+				weaponParticlesVelocity = [cos*2,sin*2]
+				self.stats['energy'] -= 100*self.engine.clock.get_time()*0.001
+			else:
+				self.weaponEffectsParticles.power = 0
 
-		weaponParticlesVelocity = None
-		if self.isAttacking and mouseAngleDif > 2 and self.stats['energy'] > 0:
-			self.weaponEffectsParticles.power = 1
-			weaponParticlesVelocity = [cos*2,sin*2]
-			self.stats['energy'] -= 100*self.engine.clock.get_time()*0.001
-		else:
-			self.weaponEffectsParticles.power = 0
+			#weapon normal parcticles calculations
+			if self.inventory.hands is not None and self.inventory.hands.data["itemType"] == 'weapon':
+				self.specialsDamage = self.inventory.hands.data['stats']['specials damage']
+				circleRadius = self.inventory.hands.data['particles']['circle']*self.param['newPixelScale']
+				weaponParticlesCoords = (playerCenter[0] + cos*circleRadius, playerCenter[1] + sin*circleRadius)
 
-		#weapon normal parcticles calculations
-		circleRadius = self.inventory.hands.data['particles']['circle']*self.param['newPixelScale']
-		weaponParticlesCoords = (playerCenter[0] + cos*circleRadius, playerCenter[1] + sin*circleRadius)
-
-		#weapon particles
+			#weapon particles
 		self.weaponParticles.draw(weaponParticlesCoords)
 		self.weaponEffectsParticles.draw(weaponParticlesCoords,vel=weaponParticlesVelocity)
+		for particle in self.weaponEffectsParticles.particles:
+			attackRect = pygame.Rect(particle['pos'][0] + particle['size']*0.25,particle['pos'][1]+ particle['size']*0.25, particle['size']*0.75, particle['size']*0.75)
+			damage = (particle['size']/self.weaponEffectsParticles.startSize)*self.specialsDamage
+			self.engine.damagesInfos.append({'entity':self, 'particle': particle,'attackRect':attackRect,'damage': damage})
 
 		#draw weapon before player if top direction
 		if self.inventory.hands is not None and self.inventory.hands.data["itemType"] == 'weapon':
 			self.weaponParticles.power = 1
-			if not 90 < angle < 270:
+			if not 90 < self.angleToMouse < 270:
 				self.drawWeapon(playerCenter)
 			else:
 				willDrawWeapon = True

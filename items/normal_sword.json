@@ -22,6 +22,7 @@
     "stats": {
         "stackable": false,
         "cost": 200,
-        "damage": 25
+        "damage": 25,
+        "specials damage": 6
     }
 }

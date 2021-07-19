@@ -69,25 +69,26 @@ class ParticleSystem():
                 
                 particle['vel'][1] += self.gravity
 
-        if time.time() >= self.lastTimeEmited:    #shoot particles
-            self.lastTimeEmited = time.time() + self.emitingRate
-            for i in range(self.power):
-                angle = math.radians(random.randint(0, self.emitingRadius) + int(self.emitingRadius/2) + self.offSetAngle)
-                particle = {
-                    'size': self.startSize,
-                    'pos': [0,0],
-                    'vel': [math.cos(angle)*self.speed , math.sin(angle)*self.speed],
-                    'color': self.color
-                }
-                if self.coordReference == 'global':
-                    particle['pos'] = coords
-                if startSize is not None:
-                    particle['size'] = startSize* self.engine.param["scaleMultiplier"]
-                if vel is not None:
-                    particle['vel'] = vel
-                if color is not None:
-                    particle['color'] = color
-                self.particles.append(particle)
+        if self.engine.currentHUD in self.engine.states['play']:
+            if time.time() >= self.lastTimeEmited:    #shoot particles
+                self.lastTimeEmited = time.time() + self.emitingRate
+                for i in range(self.power):
+                    angle = math.radians(random.randint(0, self.emitingRadius) + int(self.emitingRadius/2) + self.offSetAngle)
+                    particle = {
+                        'size': self.startSize,
+                        'pos': [0,0],
+                        'vel': [math.cos(angle)*self.speed , math.sin(angle)*self.speed],
+                        'color': self.color
+                    }
+                    if self.coordReference == 'global':
+                        particle['pos'] = coords
+                    if startSize is not None:
+                        particle['size'] = startSize* self.engine.param["scaleMultiplier"]
+                    if vel is not None:
+                        particle['vel'] = vel
+                    if color is not None:
+                        particle['color'] = color
+                    self.particles.append(particle)
         
 
 

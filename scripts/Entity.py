@@ -14,6 +14,7 @@ class Entity(gregngine.Entity):
 		duration=10, power=1, startSize=0.8, sizeReduction=0.015,
 		emitingRate=0.5, emitingRadius=360, gravity=0.01, speed=0.4, 
 		outline=1, outlineColor=(0,0,0))
+		self.blood.coordReference = 'global'
 
 	def draw(self, xStart, yStart, passThrough):
 		super().draw(xStart, yStart, passThrough)

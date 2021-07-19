@@ -180,8 +180,8 @@ class Engine(gregngine.Engine):
 		print('Save')
 
 	def loadGame(self):
-		savesLoaded = self.loadSaves()
-		#savesLoaded = False
+		#savesLoaded = self.loadSaves()
+		savesLoaded = False
 		
 		if not savesLoaded:
 			print('load init')
@@ -370,6 +370,8 @@ class Engine(gregngine.Engine):
 				if entity.data['type'] in ['monster','player'] and entity != damagedInfo['entity'] and damagedInfo['attackRect'].colliderect(entity.rect):
 					print("Hit " + entity.name, entity.stats['health'])
 					entity.takeDamageOf(damagedInfo['damage'])
+					if 'particle' in damagedInfo:
+						damagedInfo['entity'].weaponEffectsParticles.particles.remove(damagedInfo['particle'])
 		
 		self.damagesInfos = []
 
