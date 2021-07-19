@@ -40,3 +40,4 @@ class Entity(gregngine.Entity):
 					self.engine.entitiesManager.addEntity(item)
 			
 			self.engine.player.addExp(self.stats['exp'])
+			self.engine.player.addMoney(self.stats['gold'])

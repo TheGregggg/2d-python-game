@@ -394,6 +394,7 @@ class Player(gregngine.Entity):
 
 		willDrawWeapon = False
 		weaponParticlesCoords = (0,0)
+		weaponParticlesVelocity = None
 
 		# angle compare to mouse and player pos weapon
 		playerCenter = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+0.5)*self.param['newPixelScale']))
@@ -415,7 +416,6 @@ class Player(gregngine.Entity):
 				angleMouse += 360
 			mouseAngleDif = max(angleMouse,self.lastAngleToMouse) - min(angleMouse,self.lastAngleToMouse)
 
-			weaponParticlesVelocity = None
 			if self.isAttacking and mouseAngleDif > 2 and self.stats['energy'] > 0:
 				self.weaponEffectsParticles.power = 1
 				weaponParticlesVelocity = [cos*2,sin*2]

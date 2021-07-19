@@ -71,8 +71,6 @@ But final : avoir battu les 5 bosses du jeu
 ## Todo:
  - 3d son
 
-   fix sword anim
-
  - traduction
 
  - ajouter du son
@@ -95,9 +93,7 @@ But final : avoir battu les 5 bosses du jeu
  - donjons infini
  - systeme quetes
 
-
  - optimization world renderer
- - refactor attaque animation pour entitées et player
  - multi-threading
 
 ## Gregngine:

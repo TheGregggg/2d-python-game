@@ -7,6 +7,7 @@
         "atkDamage": 10,
         "speed": 3,
         "exp": 10,
+        "gold": 75,
         "drops":[
             {
                 "rate": 100,
