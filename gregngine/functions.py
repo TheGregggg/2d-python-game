@@ -56,5 +56,11 @@ def generateRandomString(length):
     
     return string
 
+def reduceColorBy(color,nbr):
+    r = color[0]-nbr if color[0]-nbr >= 0 else 0
+    g = color[1]-nbr if color[1]-nbr >= 0 else 0
+    b = color[2]-nbr if color[2]-nbr >= 0 else 0
+    return (r,g,b)
+
 if __name__ == '__main__':
     print(generateRandomString(10))

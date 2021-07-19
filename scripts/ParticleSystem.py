@@ -24,7 +24,7 @@ class ParticleSystem():
         self.offSetAngle = offSetAngle
 
         self.outline = outline
-        self.outlineColor = outline
+        self.outlineColor = outlineColor
 
         self.coordReference = 'local'
 
@@ -40,6 +40,9 @@ class ParticleSystem():
             xToDraw, yToDraw = coords
         elif self.coordReference == 'global':
             xToDraw, yToDraw = 0,0
+            camVelocity = self.engine.mainCamera.velocity
+            xCam = camVelocity[0] * self.pixelSize
+            yCam = camVelocity[1] * self.pixelSize
 
         for particle in self.particles:
             # draw particles
@@ -59,7 +62,10 @@ class ParticleSystem():
                     self.particles.remove(particle)
 
                 else:
-                    particle['pos'] = (particle['pos'][0] + particle['vel'][0], particle['pos'][1] + particle['vel'][1])
+                    if self.coordReference == 'local':
+                        particle['pos'] = (particle['pos'][0] + particle['vel'][0], particle['pos'][1] + particle['vel'][1])
+                    else: #global
+                        particle['pos'] = (particle['pos'][0] + particle['vel'][0] - xCam, particle['pos'][1] + particle['vel'][1] - yCam)
                 
                 particle['vel'][1] += self.gravity
 

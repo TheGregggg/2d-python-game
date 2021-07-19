@@ -33,6 +33,7 @@ class Camera(object):
 		"""
 		self.x += x
 		self.y += y
+		self.velocity = (x,y)
 	
 	def setPos(self, x, y):
 		"""

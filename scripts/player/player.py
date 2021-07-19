@@ -41,9 +41,9 @@ class Player(gregngine.Entity):
 		self.animator.setFrame()
 
 		self.particles = ParticleSystem(self.engine, color=(255,255,255),
-		duration=10, power=3, startSize=1, sizeReduction=0.01,
-		emitingRate=0.25, emitingRadius=90, gravity=0.005, speed=0.6, 
-		outline=1, outlineColor=(0,0,0), shape='square')
+		duration=10, power=3, startSize=1.5, sizeReduction=0.015,
+		emitingRate=0.15, emitingRadius=90, gravity=0.005, speed=0.6, 
+		outline=2, outlineColor=(50,50,50), shape='square')
 		self.particles.coordReference = 'global'
 
 		self.weaponParticles = ParticleSystem(self.engine, color=(255,255,255),
@@ -53,7 +53,7 @@ class Player(gregngine.Entity):
 		self.weaponParticles.coordReference = 'global'
 
 		self.weaponEffectsParticles = ParticleSystem(self.engine, color=(3, 173, 252),
-		duration=10, power=1, startSize=4, sizeReduction=0.09,
+		duration=10, power=1, startSize=4, sizeReduction=0.03,
 		emitingRate=0.008, emitingRadius=360, speed=0, shape='circle')
 		self.weaponEffectsParticles.coordReference = 'global'
 
@@ -432,21 +432,12 @@ class Player(gregngine.Entity):
 		#draw weapon before player if top direction
 		if self.inventory.hands is not None and self.inventory.hands.data["itemType"] == 'weapon':
 			self.weaponParticles.power = 1
-			
 			if not 90 < angle < 270:
 				self.drawWeapon(playerCenter)
 			else:
 				willDrawWeapon = True
 		else:
 			self.weaponParticles.power = 0
-
-		#draw player
-		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
-		if passThrough['debug'] == True:
-			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
-		if not passThrough['isPaused']:
-			self.animator.setFrame()
-		passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
 		# particles when moving
 		coords = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+1.05)*self.param['newPixelScale']))
@@ -457,6 +448,14 @@ class Player(gregngine.Entity):
 			self.particles.power = 0
 		
 		self.particles.draw(coords)
+
+		#draw player
+		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
+		if passThrough['debug'] == True:
+			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
+		if not passThrough['isPaused']:
+			self.animator.setFrame()
+		passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
 		#draw weapon after player if bottom direction
 		if willDrawWeapon:
