@@ -1,16 +1,13 @@
-import pygame 
-from pygame.locals import *
-
 actions = {
-	"up":     pygame.K_z,
-	"down":   pygame.K_s,
-	"right":  pygame.K_d,
-	"left":   pygame.K_q,
-	"sprint": pygame.K_LSHIFT,
+	"up":     'key;z',
+	"down":   'key;s',
+	"right":  'key;d',
+	"left":   'key;q',
+	"sprint": 'key;left shift',
 	"attack": 'mouse;1',
-	"inventory": pygame.K_i,
-	"skillTree": pygame.K_TAB,
-	"pause": pygame.K_ESCAPE
+	"inventory": 'key;i',
+	"skillTree": 'key;tab',
+	"pause": 'key;escape'
 }
 
 crosshair = {

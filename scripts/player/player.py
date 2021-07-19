@@ -58,6 +58,7 @@ class Player(gregngine.Entity):
 		self.weaponEffectsParticles.coordReference = 'global'
 
 		self.angleToMouse = 0
+		self.lastAngleToMouse = 0
 
 	def applyExpFromLevel(self):
 		expTable = self.data['experienceTable']
@@ -241,8 +242,6 @@ class Player(gregngine.Entity):
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
 
-		
-
 		if self.velocity['x'] != 0 or self.velocity['y'] != 0:
 			self.isMoving = True
 		else:
@@ -406,11 +405,16 @@ class Player(gregngine.Entity):
 		angle +=90
 		if cos < 0:
 			angle = 180 + 180-angle
+		self.lastAngleToMouse = self.angleToMouse
 		self.angleToMouse = angle
-		
+
+		angleMouse = self.angleToMouse
+		if self.lastAngleToMouse > 315 and self.angleToMouse < 45:
+			angleMouse += 360
+		mouseAngleDif = max(angleMouse,self.lastAngleToMouse) - min(angleMouse,self.lastAngleToMouse)
 
 		weaponParticlesVelocity = None
-		if mousePower > 30 and self.stats['energy'] > 0:
+		if self.isAttacking and mouseAngleDif > 2 and self.stats['energy'] > 0:
 			self.weaponEffectsParticles.power = 1
 			weaponParticlesVelocity = [cos*2,sin*2]
 			self.stats['energy'] -= 100*self.engine.clock.get_time()*0.001
@@ -437,7 +441,12 @@ class Player(gregngine.Entity):
 			self.weaponParticles.power = 0
 
 		#draw player
-		super().draw(xStart, yStart, passThrough) 
+		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
+		if passThrough['debug'] == True:
+			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
+		if not passThrough['isPaused']:
+			self.animator.setFrame()
+		passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
 
 		# particles when moving
 		coords = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+1.05)*self.param['newPixelScale']))

@@ -33,6 +33,8 @@ class Engine(gregngine.Engine):
 	def __init__(self, param):
 		super().__init__(param)
 
+		self.actionsInputs = actions
+
 		pygame.mouse.set_visible(False)
 
 		self.world = world
@@ -257,7 +259,7 @@ class Engine(gregngine.Engine):
 
 		walls = self.player.walls
 
-		if inputPressed[actions["sprint"]]:
+		if self.isPressed("sprint"):
 			self.player.running = True
 			if self.player.stats['energy'] > 0:
 				self.player.animator.animationSettings['time'] = self.player.animator.animationSettings['maxSpeed']
@@ -269,22 +271,22 @@ class Engine(gregngine.Engine):
 
 		self.player.increaseEnergy(self.clock.get_time())
 
-		if inputPressed[actions["up"]]:
+		if self.isPressed("up"):
 			if "Top" not in walls:
 				playerSpeedY -= 1
 			playerMouvY -= 1
 
-		if inputPressed[actions["down"]]:
+		if self.isPressed("down"):
 			if "Bottom" not in walls:
 				playerSpeedY += 1
 			playerMouvY += 1
 
-		if inputPressed[actions["left"]]:
+		if self.isPressed("left"):
 			if "Left" not in walls:
 				playerSpeedX -= 1
 			playerMouvX -= 1
 
-		if inputPressed[actions["right"]]:
+		if self.isPressed("right"):
 			if "Right" not in walls:
 				playerSpeedX += 1
 			playerMouvX += 1
@@ -294,28 +296,31 @@ class Engine(gregngine.Engine):
 		
 		self.player.setOrientation(playerMouvX, playerMouvY)
 		
+		if self.isPressed("attack"):
+			self.player.isAttacking = True
+		else:
+			self.player.isAttacking = False
 		# attack code
-		if inputPressed[actions["attack"]]:
+		"""if inputPressed[actions["attack"]]:
 			attackinfo = self.player.attack()
 
 			if attackinfo is not None:
 				self.damagesInfos.append(attackinfo)
-				"""for entity in self.entitiesManager.visibleEntities:
+				for entity in self.entitiesManager.visibleEntities:
 					if entity.data['type'] == 'monster' and attackinfo['attackRect'].colliderect(entity.rect):
 						print("Hit " + entity.name)
 						entity.stats['health'] -= attackinfo['damage']"""
 
 	def playerInputMenus(self,inputEvent,inputPressed):
-		
 		inventoryPressed, skillTreePressed, pausePressed = False, False, False
 
 		for event in inputEvent:
 			if event.type == pygame.KEYDOWN:
-				if event.key==actions["inventory"]:
+				if event.key==self.getKey("inventory"):
 					inventoryPressed = True
-				if event.key==actions["skillTree"]:
+				if event.key==self.getKey("skillTree"):
 					skillTreePressed = True
-				if event.key==actions["pause"]:
+				if event.key==self.getKey("pause"):
 					pausePressed = True
 
 		self.currentHUD = 'main'

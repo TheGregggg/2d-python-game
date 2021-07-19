@@ -261,20 +261,15 @@ class Entity(object):
 
 		if not passThrough['isPaused']:
 			self.animator.setFrame()
+			self.animationSurface = self.attackAnimation()
 
 		self.rect = Rect((xToDraw+self.col['offSets']['left'])*self.param['newPixelScale'], (yToDraw+self.col['offSets']['top'])*self.param['newPixelScale'], self.col['size']['width']*self.param['newPixelScale'], self.col['size']['height']*self.param['newPixelScale'])
 		if passThrough['debug'] == True:
 			pygame.draw.rect(passThrough['window'],(255,0,0),self.rect)
 
-		if not passThrough['isPaused']:
-			self.animationSurface = self.attackAnimation()
-
-		if self.data['type'] == 'player':
+		if self.animationSurface is None:
 			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
-		elif self.animationSurface is None:
-			passThrough['window'].blit(self.animator.sprite , (xToDraw*self.param['newPixelScale'], yToDraw*self.param['newPixelScale']))
-
-		if self.animationSurface is not None:
+		else:
 			passThrough['window'].blit(self.animationSurface,((xToDraw-1)*self.param['newPixelScale'], (yToDraw-1)*self.param['newPixelScale']))
 
 	def drawHud(self, xPos, yPos, passThrough):
@@ -349,6 +344,8 @@ class Engine(object):
 
 		self.param = param
 		self.debugMode = param["debug"]
+
+		self.actionsInputs = {}
 
 		self.states = {								# states for the engine, in relation with the currentHUD, match hud page with the game state
 			'play': [],								# pause -> the game will not call the entities .draw() methods 
@@ -512,3 +509,20 @@ class Engine(object):
 
 		for entitie in visibleEnt:
 			entitie.drawHud(coords['xStart']+coords['offx'],coords['yStart']+coords['offy'],passThrough)
+
+	def isPressed(self,actionStr):
+		inputStr = self.actionsInputs[actionStr]
+		inputType, inputBtn = inputStr.split(';')
+		if inputType == 'key':
+			if pygame.key.get_pressed()[pygame.key.key_code(inputBtn)]:
+				return True
+		else: # == 'mouse'
+			if pygame.mouse.get_pressed(num_buttons=5)[int(inputBtn)-1]:
+				return True
+		
+		return False
+	
+	def getKey(self,actionStr):
+		inputStr = self.actionsInputs[actionStr]
+		inputType, inputBtn = inputStr.split(';')
+		return pygame.key.key_code(inputBtn)
