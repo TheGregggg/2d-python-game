@@ -16,6 +16,9 @@
         "leftOffset": -6,
         "topOffset": -17.5
     },
+    "particles": {
+        "circle": 0.85
+    },
     "stats": {
         "stackable": false,
         "cost": 200,

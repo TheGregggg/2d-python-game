@@ -7,7 +7,7 @@ actions = {
 	"right":  pygame.K_d,
 	"left":   pygame.K_q,
 	"sprint": pygame.K_LSHIFT,
-	"attack": pygame.K_SPACE,
+	"attack": 'mouse;1',
 	"inventory": pygame.K_i,
 	"skillTree": pygame.K_TAB,
 	"pause": pygame.K_ESCAPE

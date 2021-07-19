@@ -41,8 +41,8 @@ class Engine(gregngine.Engine):
 		
 		self.HUDMenuManager = HUDMenuManager(self,self.param['HudScale'])
 		self.states['start'] = ['startMenu']
-		self.states['play'] = ['main','inventory','skillTree']
-		self.states['pause'] = ['pauseMenu']
+		self.states['play'] = ['main','inventory']
+		self.states['pause'] = ['pauseMenu','skillTree']
 		self.currentHUD = 'startMenu'
 
 		self.collisionsDistance = 1.5

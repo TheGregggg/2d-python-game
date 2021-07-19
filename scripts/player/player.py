@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 
 import time
+import math
 
 import gregngine.functions as gFunction
 import gregngine.engine as gregngine
@@ -41,8 +42,22 @@ class Player(gregngine.Entity):
 
 		self.particles = ParticleSystem(self.engine, color=(255,255,255),
 		duration=10, power=3, startSize=1, sizeReduction=0.01,
-		emitingRate=0.25, emitingRadius=90, gravity=0.01, speed=0.6, 
+		emitingRate=0.25, emitingRadius=90, gravity=0.005, speed=0.6, 
 		outline=1, outlineColor=(0,0,0), shape='square')
+		self.particles.coordReference = 'global'
+
+		self.weaponParticles = ParticleSystem(self.engine, color=(255,255,255),
+		duration=10, power=1, startSize=1.5, sizeReduction=0.09,
+		emitingRate=0.0001, emitingRadius=360, gravity=0, speed=0, 
+		outline=0, outlineColor=(0,0,0), shape='circle')
+		self.weaponParticles.coordReference = 'global'
+
+		self.weaponEffectsParticles = ParticleSystem(self.engine, color=(3, 173, 252),
+		duration=10, power=1, startSize=4, sizeReduction=0.09,
+		emitingRate=0.008, emitingRadius=360, speed=0, shape='circle')
+		self.weaponEffectsParticles.coordReference = 'global'
+
+		self.angleToMouse = 0
 
 	def applyExpFromLevel(self):
 		expTable = self.data['experienceTable']
@@ -226,6 +241,8 @@ class Player(gregngine.Entity):
 	def move(self,dTime):
 		x,y = self.velocity['x'],self.velocity['y']
 
+		
+
 		if self.velocity['x'] != 0 or self.velocity['y'] != 0:
 			self.isMoving = True
 		else:
@@ -349,6 +366,16 @@ class Player(gregngine.Entity):
 
 		return None
 
+	def drawWeapon(self,playerCenter):
+		sprite = self.inventory.hands.sprite
+		tilemap = self.inventory.hands.data['tilemap']
+		itemScale = (int(self.param['newPixelScale']*tilemap['scaling']/tilemap['ratio']),int(self.param['newPixelScale']*tilemap['scaling']))
+		sprite = pygame.transform.scale(sprite.convert_alpha(),itemScale)
+		weaponSurface = pygame.Surface((sprite.get_width(),sprite.get_height()*2), pygame.SRCALPHA)
+		weaponSurface.blit(sprite,(0,0))
+		weaponSurface = pygame.transform.rotate(weaponSurface, -self.angleToMouse)
+		self.engine.window.blit(weaponSurface, (playerCenter[0] - weaponSurface.get_width()/2,playerCenter[1] - weaponSurface.get_height()/2))
+
 	def consumeItemInHand(self):
 		if self.inventory.hands.data["itemType"] == 'consumable':
 			if 'heal' in self.inventory.hands.data['stats']:
@@ -361,11 +388,58 @@ class Player(gregngine.Entity):
 				self.inventory.handsStack = 0
 			
 	def draw(self, xStart, yStart, passThrough):
-		super().draw(xStart, yStart, passThrough)
-
 		xToDraw = self.x - xStart 
 		yToDraw = self.y - yStart
 
+		willDrawWeapon = False
+		weaponParticlesCoords = (0,0)
+
+		# angle compare to mouse and player pos weapon
+		playerCenter = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+0.5)*self.param['newPixelScale']))
+		playerCenter = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+0.5)*self.param['newPixelScale']))
+
+		mouse = pygame.mouse.get_pos()
+		adj, opo = mouse[0] - playerCenter[0], mouse[1] - playerCenter[1]
+		hypo = math.sqrt(adj**2 + opo**2)
+		cos, sin = adj/hypo, opo/hypo
+		angle = ((math.asin(sin))*180)/math.pi
+		angle +=90
+		if cos < 0:
+			angle = 180 + 180-angle
+		self.angleToMouse = angle
+		
+
+		weaponParticlesVelocity = None
+		if mousePower > 30 and self.stats['energy'] > 0:
+			self.weaponEffectsParticles.power = 1
+			weaponParticlesVelocity = [cos*2,sin*2]
+			self.stats['energy'] -= 100*self.engine.clock.get_time()*0.001
+		else:
+			self.weaponEffectsParticles.power = 0
+
+		#weapon normal parcticles calculations
+		circleRadius = self.inventory.hands.data['particles']['circle']*self.param['newPixelScale']
+		weaponParticlesCoords = (playerCenter[0] + cos*circleRadius, playerCenter[1] + sin*circleRadius)
+
+		#weapon particles
+		self.weaponParticles.draw(weaponParticlesCoords)
+		self.weaponEffectsParticles.draw(weaponParticlesCoords,vel=weaponParticlesVelocity)
+
+		#draw weapon before player if top direction
+		if self.inventory.hands is not None and self.inventory.hands.data["itemType"] == 'weapon':
+			self.weaponParticles.power = 1
+			
+			if not 90 < angle < 270:
+				self.drawWeapon(playerCenter)
+			else:
+				willDrawWeapon = True
+		else:
+			self.weaponParticles.power = 0
+
+		#draw player
+		super().draw(xStart, yStart, passThrough) 
+
+		# particles when moving
 		coords = (int((xToDraw+0.5)*self.param['newPixelScale']), int((yToDraw+1.05)*self.param['newPixelScale']))
 		if self.isMoving:
 			self.particles.color = self.engine.window.get_at(coords)
@@ -374,3 +448,7 @@ class Player(gregngine.Entity):
 			self.particles.power = 0
 		
 		self.particles.draw(coords)
+
+		#draw weapon after player if bottom direction
+		if willDrawWeapon:
+			self.drawWeapon(playerCenter)

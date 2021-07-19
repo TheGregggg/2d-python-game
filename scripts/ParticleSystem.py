@@ -26,26 +26,31 @@ class ParticleSystem():
         self.outline = outline
         self.outlineColor = outline
 
+        self.coordReference = 'local'
+
         self.pixelSize = self.engine.param['newPixelScale']
 
         self.lastTimeEmited = 0
 
         self.particles = []
 
-    def draw(self, coords):
+    def draw(self, coords, vel=None, color=None,startSize=None):
         dTime = self.engine.clock.get_time()
-        xToDraw, yToDraw = coords
+        if self.coordReference == 'local':
+            xToDraw, yToDraw = coords
+        elif self.coordReference == 'global':
+            xToDraw, yToDraw = 0,0
 
         for particle in self.particles:
             # draw particles
             if self.shape == 'circle':
                 if self.outline is not None:
                     pygame.draw.circle(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size']+self.outline)
-                pygame.draw.circle(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size'])
+                pygame.draw.circle(self.engine.window, particle['color'], (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1]), particle['size'])
             elif self.shape == 'square':
                 if self.outline is not None:
                     pygame.draw.rect(self.engine.window, self.outlineColor, (xToDraw+particle['pos'][0]-self.outline/2, yToDraw+particle['pos'][1]-self.outline/2, particle['size']+self.outline, particle['size']+self.outline))
-                pygame.draw.rect(self.engine.window, self.color, (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1], particle['size'], particle['size']))
+                pygame.draw.rect(self.engine.window, particle['color'], (xToDraw+particle['pos'][0], yToDraw+particle['pos'][1], particle['size'], particle['size']))
 
             # move particles
             if self.engine.currentHUD in self.engine.states['play']:
@@ -65,8 +70,17 @@ class ParticleSystem():
                 particle = {
                     'size': self.startSize,
                     'pos': [0,0],
-                    'vel': [math.cos(angle)*self.speed , math.sin(angle)*self.speed]
+                    'vel': [math.cos(angle)*self.speed , math.sin(angle)*self.speed],
+                    'color': self.color
                 }
+                if self.coordReference == 'global':
+                    particle['pos'] = coords
+                if startSize is not None:
+                    particle['size'] = startSize* self.engine.param["scaleMultiplier"]
+                if vel is not None:
+                    particle['vel'] = vel
+                if color is not None:
+                    particle['color'] = color
                 self.particles.append(particle)
         
 
